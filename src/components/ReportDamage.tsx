@@ -4,9 +4,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { DAMAGE_TYPES } from '@/lib/relief'
+import type { Coords } from '@/lib/geo'
 import { useStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
 import mockProof from '@/assets/delivery-proof.jpg'
+import { LocationCapture } from './LocationCapture'
 
 /**
  * Citizen damage report: pick what happened, snap a photo, post it to the
@@ -24,10 +26,17 @@ export function ReportDamage({
   const [typeId, setTypeId] = useState<string | null>(null)
   const [area, setArea] = useState('Gregory Park, Portmore')
   const [photo, setPhoto] = useState<string | undefined>()
+  const [coords, setCoords] = useState<Coords | null>(null)
 
   const send = () => {
     const type = DAMAGE_TYPES.find((t) => t.id === typeId)
-    reportDamage({ damageType: type?.label ?? 'Storm damage', area, photoUrl: photo })
+    reportDamage({
+      damageType: type?.label ?? 'Storm damage',
+      area,
+      photoUrl: photo,
+      lat: coords?.lat,
+      lng: coords?.lng,
+    })
     onSent()
   }
 
@@ -103,6 +112,10 @@ export function ReportDamage({
             value={area}
             onChange={(e) => setArea(e.target.value)}
           />
+        </div>
+
+        <div className="mt-4">
+          <LocationCapture value={coords} onChange={setCoords} />
         </div>
       </div>
 

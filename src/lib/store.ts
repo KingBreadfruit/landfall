@@ -171,11 +171,15 @@ type LandfallState = {
     area: string
     household: number
     selections: Record<string, { qty: number; unit: string }>
+    lat?: number
+    lng?: number
   }) => void
   reportDamage: (payload: {
     damageType: string
     area: string
     photoUrl?: string
+    lat?: number
+    lng?: number
   }) => void
   submitShelterRequest: (
     selections: Record<string, { qty: number; unit: string }>,
@@ -405,7 +409,7 @@ export const useStore = create<LandfallState>()(
   },
 
   // Citizen posts a supply request → a new person-need on the board.
-  submitSupplyRequest: ({ name, area, household, selections }) => {
+  submitSupplyRequest: ({ name, area, household, selections, lat, lng }) => {
     const items = Object.entries(selections)
       .filter(([, v]) => v.qty > 0)
       .map(([itemName, v]) => ({
@@ -420,8 +424,8 @@ export const useStore = create<LandfallState>()(
       id: `need-req-${Date.now()}`,
       community: cleanName,
       kind: 'person',
-      lat: 17.9615,
-      lng: -76.8735,
+      lat: lat ?? 17.9615,
+      lng: lng ?? -76.8735,
       parish: 'St. Catherine',
       area: cleanText(area) || 'Portmore',
       items,
@@ -434,13 +438,13 @@ export const useStore = create<LandfallState>()(
   },
 
   // Citizen reports damage → a new repair on the board (Groundwork).
-  reportDamage: ({ damageType, area, photoUrl }) => {
+  reportDamage: ({ damageType, area, photoUrl, lat, lng }) => {
     const need: Need = {
       id: `need-dmg-${Date.now()}`,
       community: 'Reported by a resident',
       kind: 'repair',
-      lat: 17.9605,
-      lng: -76.876,
+      lat: lat ?? 17.9605,
+      lng: lng ?? -76.876,
       parish: 'St. Catherine',
       area: cleanText(area) || 'Portmore',
       items: [],
@@ -514,8 +518,8 @@ export const useStore = create<LandfallState>()(
       // Keep user-added data across refreshes (same device). Points live in
       // the profile (Supabase / localStorage); UI/nav state is not persisted.
       name: 'landfall-store',
-      // Bump to reset stale browsers to the fresh seed + new role model.
-      version: 3,
+      // Bump to reset stale browsers — truly empty board, real data only.
+      version: 4,
       partialize: (s) => ({
         needs: s.needs,
         runs: s.runs,

@@ -4,8 +4,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RELIEF_CATALOG, itemCap, totalCap, unitLabel } from '@/lib/relief'
+import type { Coords } from '@/lib/geo'
 import { useStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
+import { LocationCapture } from './LocationCapture'
 
 /**
  * Supply request "shopping list" of relief items — used by citizens
@@ -27,6 +29,7 @@ export function RequestSupplies({
   const [name, setName] = useState('')
   const [area, setArea] = useState('Gregory Park, Portmore')
   const [household, setHousehold] = useState(4)
+  const [coords, setCoords] = useState<Coords | null>(null)
   const [qtys, setQtys] = useState<Record<string, number>>({})
 
   const caps = useMemo(
@@ -63,7 +66,15 @@ export function RequestSupplies({
       ]),
     )
     if (isShelter) submitShelterRequest(selections)
-    else submitSupplyRequest({ name, area, household, selections })
+    else
+      submitSupplyRequest({
+        name,
+        area,
+        household,
+        selections,
+        lat: coords?.lat,
+        lng: coords?.lng,
+      })
     onSent()
   }
 
@@ -110,6 +121,7 @@ export function RequestSupplies({
                 onChange={(e) => setArea(e.target.value)}
               />
             </div>
+            <LocationCapture value={coords} onChange={setCoords} />
             <div className="flex items-center justify-between">
               <Label>People in your household</Label>
               <div className="flex items-center gap-2">
