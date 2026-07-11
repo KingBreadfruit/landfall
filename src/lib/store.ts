@@ -23,40 +23,51 @@ import {
 } from './seed'
 import { GROUNDWORK_POINTS, supplyPoints, TOP_THRESHOLD } from './relief'
 import { clampQty, cleanText } from './sanitize'
+import { useAuth } from './auth'
+import { supabase } from './supabase'
 
 /**
- * Apply a completed contribution to the current user: add points, bump
- * the count, and award any newly-earned badges (Verified on the first
- * contribution, Top at 20 points).
+ * Compute the reward for a contribution against the signed-in user's
+ * PERSISTED profile (points + badges live in Supabase). Verified is
+ * earned on the first contribution, Top at 20 points.
  */
-function applyContribution(
-  you: Contributor,
+function rewardFor(
   category: Category,
   itemsMoved: number,
   place: string,
-): { you: Contributor; reward: Reward } {
+): Reward {
+  const profile = useAuth.getState().profile
+  const basePoints = profile?.points ?? 0
+  const baseBadges = (profile?.badges ?? []) as BadgeKind[]
   const points =
     category === 'supply' ? supplyPoints(itemsMoved) : GROUNDWORK_POINTS
-  const totalPoints = you.points + points
-  const badges = [...you.badges]
+  const totalPoints = basePoints + points
   const newBadges: BadgeKind[] = []
-  if (!badges.includes('verified')) {
-    badges.push('verified')
-    newBadges.push('verified')
-  }
-  if (totalPoints >= TOP_THRESHOLD && !badges.includes('top')) {
-    badges.push('top')
+  if (!baseBadges.includes('verified')) newBadges.push('verified')
+  if (totalPoints >= TOP_THRESHOLD && !baseBadges.includes('top'))
     newBadges.push('top')
-  }
-  return {
-    you: {
-      ...you,
-      points: totalPoints,
-      contributions: you.contributions + 1,
-      badges,
-    },
-    reward: { category, points, itemsMoved, totalPoints, newBadges, place },
-  }
+  return { category, points, itemsMoved, totalPoints, newBadges, place }
+}
+
+/** Persist a contribution to Supabase, then refresh the profile so the
+ * header + leaderboard reflect the new total. */
+async function persistContribution(
+  category: Category,
+  points: number,
+  newBadges: BadgeKind[],
+) {
+  const auth = useAuth.getState()
+  const profile = auth.profile
+  if (!profile) return
+  const badges = Array.from(new Set([...profile.badges, ...newBadges]))
+  await supabase
+    .from('profiles')
+    .update({ points: profile.points + points, badges })
+    .eq('id', profile.id)
+  await supabase
+    .from('contributions')
+    .insert({ profile_id: profile.id, category, points })
+  await auth.refreshProfile()
 }
 
 function nowLabel(): string {
@@ -278,16 +289,14 @@ export const useStore = create<LandfallState>((set, get) => ({
 
   // Transfer finished → land the delivery and score the supply drop.
   finishSupplyDelivery: () => {
-    const { you, pendingItemsMoved, pendingPlace, activeDelivery } = get()
-    const { you: nextYou, reward } = applyContribution(
-      you,
+    const { pendingItemsMoved, pendingPlace, activeDelivery } = get()
+    const reward = rewardFor(
       'supply',
       pendingItemsMoved,
       pendingPlace || 'the community',
     )
     const delivery = activeDelivery ?? DEMO_DELIVERY
     set({
-      you: nextYou,
       lastReward: reward,
       activeDelivery: {
         ...delivery,
@@ -296,22 +305,23 @@ export const useStore = create<LandfallState>((set, get) => ({
       },
       screen: 'delivery',
     })
+    void persistContribution('supply', reward.points, reward.newBadges)
   },
 
   // A volunteer takes up a repair (Groundwork, flat 10 pts). Removes the
   // repair from the board and shows the reward beat.
   takeUpGroundwork: (needId) => {
-    const { you, needs } = get()
+    const { needs } = get()
     const repair = needs.find((n) => n.id === needId)
     const place = repair?.damageType ?? 'the site'
-    const { you: nextYou, reward } = applyContribution(you, 'groundwork', 0, place)
+    const reward = rewardFor('groundwork', 0, place)
     set({
-      you: nextYou,
       lastReward: reward,
       needs: needs.filter((n) => n.id !== needId),
       selectedNeedId: null,
       screen: 'delivery',
     })
+    void persistContribution('groundwork', reward.points, reward.newBadges)
   },
 
   // Citizen posts a supply request → a new person-need on the board.

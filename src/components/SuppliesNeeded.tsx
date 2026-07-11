@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { List, Map as MapIcon, Trophy } from 'lucide-react'
 import type { Need } from '@/lib/types'
 import { byUrgency } from '@/lib/needs'
+import { useAuth } from '@/lib/auth'
 import { useStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
 import { Leaderboard } from './Leaderboard'
@@ -51,7 +52,7 @@ function Group({ label, needs }: { label: string; needs: Need[] }) {
 
 export function SuppliesNeeded() {
   const needs = useStore((s) => s.needs)
-  const youPoints = useStore((s) => s.you.points)
+  const youPoints = useAuth((s) => s.profile?.points ?? 0)
   const [filter, setFilter] = useState<FilterId>('all')
   const [view, setView] = useState<ViewMode>('list')
   const [boardOpen, setBoardOpen] = useState(false)
