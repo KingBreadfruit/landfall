@@ -3,9 +3,8 @@ import { Header } from '@/components/Header'
 import { AuthScreen } from '@/components/AuthScreen'
 import { SuppliesNeeded } from '@/components/SuppliesNeeded'
 import { NeedDetailSheet } from '@/components/NeedDetailSheet'
-import { PledgeFlow } from '@/components/PledgeFlow'
-import { ClaimFlow } from '@/components/ClaimFlow'
-import { MatchCard } from '@/components/MatchCard'
+import { MyRuns } from '@/components/MyRuns'
+import { RunDetail } from '@/components/RunDetail'
 import { TransferAnimation } from '@/components/TransferAnimation'
 import { DeliveryConfirm } from '@/components/DeliveryConfirm'
 import { PostNeedForm } from '@/components/PostNeedForm'
@@ -56,9 +55,8 @@ export default function App() {
         {role === 'volunteer' && (
           <div className="bg-background absolute inset-0">
             {screen === 'map' && <SuppliesNeeded />}
-            {screen === 'claim' && <ClaimFlow />}
-            {screen === 'pledge' && <PledgeFlow />}
-            {screen === 'match' && <MatchCard />}
+            {screen === 'runs' && <MyRuns />}
+            {screen === 'run' && <RunDetail />}
             {screen === 'transfer' && <TransferAnimation />}
             {screen === 'delivery' && <DeliveryConfirm />}
           </div>

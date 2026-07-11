@@ -110,25 +110,30 @@ export type Delivery = {
 /** App screens — Zustand-driven, no router needed for a demo. */
 export type Screen =
   | 'map'
-  | 'claim'
-  | 'pledge'
-  | 'match'
+  | 'runs'
+  | 'run'
   | 'transfer'
   | 'delivery'
   | 'post-need'
 
+export type RunStatus = 'to_photograph' | 'pending' | 'verified' | 'delivered'
+
 /**
- * A claimed supply run with its accountability trail: the volunteer must
- * photograph the items to claim it; until an admin verifies that proof the
- * ticket is not truly claimed. Once verified, the drop-off shelter is
- * revealed.
+ * A supply run a volunteer has claimed, with its accountability trail:
+ * photograph the items → an admin verifies the proof → a QR + drop-off
+ * shelter are revealed → deliver. Runs persist in "My runs" so a volunteer
+ * can claim several and come back to each.
  */
-export type Claim = {
+export type Run = {
+  id: string
   needId: string
-  volunteerName: string
-  itemsPhoto: string | null
-  status: 'photographing' | 'pending' | 'verified'
+  requesterName: string
+  area: string
+  items: { name: string; unit: string; qty: number }[]
   itemCount: number
+  status: RunStatus
+  itemsPhoto: string | null
+  qrToken: string
   shelterName: string
   shelterAddress: string
   shelterLat: number
