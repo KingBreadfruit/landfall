@@ -92,8 +92,10 @@ src/
     MatchCard.tsx          match card + timeline (static rough-in)
     DeliveryConfirm.tsx    photo + verified badge (placeholder photo)
     PostNeedForm.tsx       static rough-in
-    RoleSwitcher.tsx       bottom tab bar: Supply runs / Shelter / Need help
-    ShelterDashboard.tsx   shelter perspective: need + incoming pledges
+    RoleSwitcher.tsx       bottom tab bar: Supplies Needed / Shelter / Need help
+    ShelterList.tsx        shelter role home: shelters + occupancy
+    ShelterDetail.tsx      one shelter: Occupants / Incoming / Supplies tabs
+    LogPersonSheet.tsx     tablet intake form (adds a resident live)
     RequestHelp.tsx        person-in-need form (static rough-in)
   assets/delivery-proof.jpg  generated placeholder — SWAP for real photo
 ```
@@ -113,10 +115,16 @@ The bottom nav switches perspective instantly — one presenter, one
 device, three views:
 
 - **Supply runs** (volunteer/donor): the map + the whole demo arc.
-- **Shelter**: Portmore HS dashboard — need progress, incoming pledges,
-  post a new need. Pledges made in the volunteer view appear here —
-  great two-beat demo: pledge as volunteer, flip to Shelter, "and this
-  is what the shelter sees."
+- **Shelter** (government-official view): list of shelters with live
+  occupancy → tap one for three tabs. **Occupants** = the roster (full
+  name, TRN, DOB, check-in time) + a tablet "Log a resident" form that
+  adds people live. **Incoming** = guests who requested to stay, with
+  ETA and a "Scan & check in"; a seeded overdue guest flashes amber with
+  phone + last-known location (the no-show alert). **Supplies** = the
+  need's progress + incoming pledges. Pledges made in the volunteer view
+  appear under Supplies — great two-beat demo: pledge as volunteer, flip
+  to Shelter, "and this is what the shelter sees." QR scanning, real
+  geolocation, and the no-show timer are mocked/seeded for demo safety.
 - **Need help** (person in need): dead-simple request form.
 
 The demo arc runs entirely in the Supply runs tab; role switches always

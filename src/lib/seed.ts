@@ -1,4 +1,4 @@
-import type { Delivery, Driver, Need, Pledge } from './types'
+import type { Delivery, Driver, Need, Pledge, Shelter } from './types'
 import { HERO_DRIVER_ID, HERO_NEED_ID } from './constants'
 import deliveryProof from '@/assets/delivery-proof.jpg'
 
@@ -127,6 +127,91 @@ export const SEED_NEEDS: Need[] = [
       { name: 'Tarpaulins', unit: 'tarps', qtyNeeded: 4, qtyPledged: 0 },
       { name: 'Baby supplies', unit: 'kits', qtyNeeded: 2, qtyPledged: 0 },
     ],
+  },
+]
+
+// ---------------------------------------------------------------------------
+// Shelter occupancy layer (government-official view). Keyed by needId so a
+// shelter's supplies and its people are the same record. Rosters are a
+// realistic SAMPLE of logged residents, not the full headcount — a big
+// shelter has hundreds sheltering but only who's been logged via the app
+// appears here. All names/TRNs are fabricated for the demo.
+// ---------------------------------------------------------------------------
+
+export const SEED_SHELTERS: Shelter[] = [
+  {
+    needId: HERO_NEED_ID, // Portmore HS Shelter
+    capacity: 400,
+    occupants: [
+      { id: 'occ-1', name: 'Andre Campbell', trn: '118-204-337', dob: '12 Mar 1984', checkedInAt: '9:15 AM' },
+      { id: 'occ-2', name: 'Shanice Reid', trn: '127-880-410', dob: '02 Nov 1996', checkedInAt: '9:22 AM' },
+      { id: 'occ-3', name: 'Everton Blake', trn: '104-559-231', dob: '25 Jun 1971', checkedInAt: '9:40 AM' },
+      { id: 'occ-4', name: 'Kimoy Bennett', trn: '133-201-908', dob: '19 Jan 2001', checkedInAt: '10:05 AM' },
+      { id: 'occ-5', name: 'Trevor Ellis', trn: '119-773-556', dob: '30 Sep 1965', checkedInAt: '10:18 AM' },
+      { id: 'occ-6', name: 'Petagaye Simms', trn: '141-006-822', dob: '14 Jul 1990', checkedInAt: '10:47 AM' },
+    ],
+    incoming: [
+      {
+        id: 'inc-1',
+        name: 'Marlene Brown',
+        trn: '122-447-901',
+        dob: '09 May 1988',
+        phone: '876-555-0142',
+        eta: '11:30 AM',
+        status: 'enroute',
+      },
+      {
+        id: 'inc-2',
+        name: 'Junior Thompson',
+        trn: '130-559-100',
+        dob: '21 Feb 1979',
+        phone: '876-555-0177',
+        eta: '11:00 AM',
+        status: 'overdue',
+        lastSeen: 'Gregory Park, Portmore · requested 10:31 AM',
+      },
+    ],
+  },
+  {
+    needId: 'need-spanish-town',
+    capacity: 300,
+    occupants: [
+      { id: 'occ-7', name: 'Dwayne Foster', trn: '112-330-449', dob: '03 Aug 1982', checkedInAt: '8:50 AM' },
+      { id: 'occ-8', name: 'Annmarie Clarke', trn: '128-901-233', dob: '17 Dec 1993', checkedInAt: '9:05 AM' },
+      { id: 'occ-9', name: 'Leroy Grant', trn: '106-774-018', dob: '28 Apr 1968', checkedInAt: '9:31 AM' },
+      { id: 'occ-10', name: 'Tamara Wright', trn: '139-220-671', dob: '11 Oct 1999', checkedInAt: '10:12 AM' },
+    ],
+    incoming: [
+      {
+        id: 'inc-3',
+        name: 'Carlton Powell',
+        trn: '124-118-903',
+        dob: '06 Jan 1975',
+        phone: '876-555-0119',
+        eta: '11:45 AM',
+        status: 'enroute',
+      },
+    ],
+  },
+  {
+    needId: 'need-old-harbour',
+    capacity: 120,
+    occupants: [
+      { id: 'occ-11', name: 'Michael Service', trn: '115-662-204', dob: '19 May 1987', checkedInAt: '9:12 AM' },
+      { id: 'occ-12', name: 'Denise Palmer', trn: '131-045-778', dob: '23 Feb 1991', checkedInAt: '9:48 AM' },
+      { id: 'occ-13', name: 'Barrington Case', trn: '109-337-560', dob: '07 Nov 1962', checkedInAt: '10:20 AM' },
+    ],
+    incoming: [],
+  },
+  {
+    needId: 'need-portland',
+    capacity: 160,
+    occupants: [
+      { id: 'occ-14', name: 'Sophia Malcolm', trn: '126-559-032', dob: '15 Sep 1994', checkedInAt: '8:40 AM' },
+      { id: 'occ-15', name: 'Owen Sinclair', trn: '117-880-441', dob: '02 Mar 1970', checkedInAt: '9:27 AM' },
+      { id: 'occ-16', name: 'Rochelle Dawes', trn: '134-201-119', dob: '30 Jun 1998', checkedInAt: '10:03 AM' },
+    ],
+    incoming: [],
   },
 ]
 

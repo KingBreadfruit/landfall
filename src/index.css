@@ -121,3 +121,19 @@
     opacity: 0;
   }
 }
+
+/* Amber flash for an overdue (no-show) incoming guest at a shelter */
+@keyframes landfall-amber {
+  0%,
+  100% {
+    background-color: rgba(245, 158, 11, 0.08);
+    border-color: rgba(245, 158, 11, 0.45);
+  }
+  50% {
+    background-color: rgba(245, 158, 11, 0.2);
+    border-color: rgba(245, 158, 11, 1);
+  }
+}
+.landfall-amber-flash {
+  animation: landfall-amber 1.4s ease-in-out infinite;
+}
