@@ -77,26 +77,31 @@ src/
     types.ts               Need (kind: shelter|person), Item, Driver, …
     store.ts               demo flow state + actions
     needs.ts               need helpers: progress %, sort, labels
+    relief.ts              request catalog, damage types, points/badges
     sanitize.ts            input clamping/trimming (chaos-test hardening)
-    seed.ts                7 needs (4 shelters, 3 people), 4 drivers,
-                           2 pledges, DEMO_DELIVERY, DEMO_ROUTE
+    seed.ts                needs (shelters/people/repairs), drivers, pledges,
+                           shelters, leaderboard, DEMO_DELIVERY, DEMO_ROUTE
   components/
     ui/                    shadcn primitives
     Header.tsx             logo + offline badge (auto + click to toggle)
-    SuppliesNeeded.tsx     volunteer home: separated list + List⇄Map toggle
-    NeedCard.tsx           one need as a scannable list row
+    SuppliesNeeded.tsx     volunteer home: Shelters/People/Repairs + Map toggle
+    NeedCard.tsx           one need as a scannable list row (repair variant)
     MapView.tsx            Leaflet map + pins (WORKS), secondary via toggle
     NeedPin.tsx            urgency-colored divIcon markers, critical pulses
-    NeedDetailSheet.tsx    bottom sheet + "I can supply" (WORKS)
+    NeedDetailSheet.tsx    "I can supply" / repair "I can help" (WORKS)
     PledgeFlow.tsx         quantity picker + confirm (WORKS, moves bars)
-    MatchCard.tsx          match card + timeline (static rough-in)
-    DeliveryConfirm.tsx    photo + verified badge (placeholder photo)
+    MatchCard.tsx          match card + timeline → Confirm hand-over
+    TransferAnimation.tsx  runner+box hand-over, bar fills to item count
+    DeliveryConfirm.tsx    delivery/taken-up + points + badge reveal
+    Leaderboard.tsx        top-contributors sheet (You highlighted)
     PostNeedForm.tsx       static rough-in
     RoleSwitcher.tsx       bottom tab bar: Supplies Needed / Shelter / Need help
     ShelterList.tsx        shelter role home: shelters + occupancy
     ShelterDetail.tsx      one shelter: Occupants / Incoming / Supplies tabs
     LogPersonSheet.tsx     tablet intake form (adds a resident live)
-    RequestHelp.tsx        person-in-need form (static rough-in)
+    RequestHelp.tsx        citizen hub: Request supplies / Report damage
+    RequestSupplies.tsx    relief shopping-list, capped by household size
+    ReportDamage.tsx       damage type + photo → posts a repair (Groundwork)
   assets/delivery-proof.jpg  generated placeholder — SWAP for real photo
 ```
 
@@ -125,9 +130,23 @@ device, three views:
   appear under Supplies — great two-beat demo: pledge as volunteer, flip
   to Shelter, "and this is what the shelter sees." QR scanning, real
   geolocation, and the no-show timer are mocked/seeded for demo safety.
-- **Need help** (person in need): dead-simple request form.
+- **Need help** (person in need): calm hub with two big actions.
+  **Request supplies** = a relief shopping-list (quantities capped by
+  household size to stop hoarding) → posts a person-need onto the board.
+  **Report damage** = pick a type (tree/road/roof/…) + photo → posts a
+  **repair** onto the board so volunteers help without waiting on a crew.
+  An offline banner shows nearby shelters cached on the phone.
 
-The demo arc runs entirely in the Supply runs tab; role switches always
+**Recognition:** two contribution categories — **Groundwork** (repairs,
+10 pts) and **Supply drops** (`5 + items`). Badges: **Verified** (first
+contribution), **Top** (20 pts). A supply drop plays the
+`TransferAnimation` (runner + box, bar fills to item count) then reveals
+points + any badge unlocked; the leaderboard (trophy chip on Supplies
+Needed) shows the climb. Points are hidden on the browse cards on
+purpose. DEMO TIP: pledge ~15 items on the hero need to cross 20 and
+unlock **both** badges at once.
+
+The demo arc runs in the Supplies Needed tab; role switches always
 land on that role's home screen.
 
 ## Morning build order (in the room)

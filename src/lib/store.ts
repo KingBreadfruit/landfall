@@ -1,9 +1,13 @@
 import { create } from 'zustand'
 import type {
+  BadgeKind,
+  Category,
+  Contributor,
   Delivery,
   Driver,
   Need,
   Pledge,
+  Reward,
   Role,
   Screen,
   Shelter,
@@ -11,11 +15,49 @@ import type {
 import {
   DEMO_DELIVERY,
   SEED_DRIVERS,
+  SEED_LEADERBOARD,
   SEED_NEEDS,
   SEED_PLEDGES,
   SEED_SHELTERS,
+  SEED_YOU,
 } from './seed'
+import { GROUNDWORK_POINTS, supplyPoints, TOP_THRESHOLD } from './relief'
 import { clampQty, cleanText } from './sanitize'
+
+/**
+ * Apply a completed contribution to the current user: add points, bump
+ * the count, and award any newly-earned badges (Verified on the first
+ * contribution, Top at 20 points).
+ */
+function applyContribution(
+  you: Contributor,
+  category: Category,
+  itemsMoved: number,
+  place: string,
+): { you: Contributor; reward: Reward } {
+  const points =
+    category === 'supply' ? supplyPoints(itemsMoved) : GROUNDWORK_POINTS
+  const totalPoints = you.points + points
+  const badges = [...you.badges]
+  const newBadges: BadgeKind[] = []
+  if (!badges.includes('verified')) {
+    badges.push('verified')
+    newBadges.push('verified')
+  }
+  if (totalPoints >= TOP_THRESHOLD && !badges.includes('top')) {
+    badges.push('top')
+    newBadges.push('top')
+  }
+  return {
+    you: {
+      ...you,
+      points: totalPoints,
+      contributions: you.contributions + 1,
+      badges,
+    },
+    reward: { category, points, itemsMoved, totalPoints, newBadges, place },
+  }
+}
 
 function nowLabel(): string {
   return new Date().toLocaleTimeString('en-US', {
@@ -49,6 +91,16 @@ type LandfallState = {
   /** Pitch toggle: shows the "Offline — pending sync" header badge. */
   offlineMode: boolean
 
+  // Recognition
+  you: Contributor
+  leaderboard: Contributor[]
+  /** Items in flight for the transfer animation / supply scoring. */
+  pendingItemsMoved: number
+  /** Where the pending contribution is going, for the reward copy. */
+  pendingPlace: string
+  /** The most recent completed contribution, shown on the reward beat. */
+  lastReward: Reward | null
+
   // Actions
   setScreen: (screen: Screen) => void
   setRole: (role: Role) => void
@@ -61,6 +113,20 @@ type LandfallState = {
   checkInGuest: (shelterId: string, guestId: string) => void
   startPledge: () => void
   confirmPledge: (donorName: string, quantities: Record<string, number>) => void
+  startTransfer: () => void
+  finishSupplyDelivery: () => void
+  takeUpGroundwork: (needId: string) => void
+  submitSupplyRequest: (payload: {
+    name: string
+    area: string
+    household: number
+    selections: Record<string, { qty: number; unit: string }>
+  }) => void
+  reportDamage: (payload: {
+    damageType: string
+    area: string
+    photoUrl?: string
+  }) => void
   startDemoDelivery: () => void
   completeDemoDelivery: () => void
   resetDemo: () => void
@@ -79,6 +145,12 @@ export const useStore = create<LandfallState>((set, get) => ({
   selectedShelterId: null,
   activeDelivery: null,
   offlineMode: false,
+
+  you: SEED_YOU,
+  leaderboard: SEED_LEADERBOARD,
+  pendingItemsMoved: 0,
+  pendingPlace: '',
+  lastReward: null,
 
   setScreen: (screen) => set({ screen }),
 
@@ -175,6 +247,8 @@ export const useStore = create<LandfallState>((set, get) => ({
           },
     )
 
+    const itemsMoved = pledgedItems.reduce((sum, i) => sum + i.qtyPledged, 0)
+
     set({
       needs: updatedNeeds,
       pledges: [
@@ -186,8 +260,106 @@ export const useStore = create<LandfallState>((set, get) => ({
           items: pledgedItems,
         },
       ],
+      pendingItemsMoved: itemsMoved,
+      pendingPlace: need.community,
       screen: 'match',
     })
+  },
+
+  // Match → play the transfer animation (fills to the pledged item count).
+  startTransfer: () =>
+    set((s) => ({
+      activeDelivery: {
+        ...(s.activeDelivery ?? DEMO_DELIVERY),
+        status: 'enroute',
+      },
+      screen: 'transfer',
+    })),
+
+  // Transfer finished → land the delivery and score the supply drop.
+  finishSupplyDelivery: () => {
+    const { you, pendingItemsMoved, pendingPlace, activeDelivery } = get()
+    const { you: nextYou, reward } = applyContribution(
+      you,
+      'supply',
+      pendingItemsMoved,
+      pendingPlace || 'the community',
+    )
+    const delivery = activeDelivery ?? DEMO_DELIVERY
+    set({
+      you: nextYou,
+      lastReward: reward,
+      activeDelivery: {
+        ...delivery,
+        status: 'delivered',
+        timeline: delivery.timeline.map((step) => ({ ...step, done: true })),
+      },
+      screen: 'delivery',
+    })
+  },
+
+  // A volunteer takes up a repair (Groundwork, flat 10 pts). Removes the
+  // repair from the board and shows the reward beat.
+  takeUpGroundwork: (needId) => {
+    const { you, needs } = get()
+    const repair = needs.find((n) => n.id === needId)
+    const place = repair?.damageType ?? 'the site'
+    const { you: nextYou, reward } = applyContribution(you, 'groundwork', 0, place)
+    set({
+      you: nextYou,
+      lastReward: reward,
+      needs: needs.filter((n) => n.id !== needId),
+      selectedNeedId: null,
+      screen: 'delivery',
+    })
+  },
+
+  // Citizen posts a supply request → a new person-need on the board.
+  submitSupplyRequest: ({ name, area, household, selections }) => {
+    const items = Object.entries(selections)
+      .filter(([, v]) => v.qty > 0)
+      .map(([itemName, v]) => ({
+        name: itemName,
+        unit: v.unit,
+        qtyNeeded: clampQty(v.qty),
+        qtyPledged: 0,
+      }))
+    if (items.length === 0) return
+    const cleanName = cleanText(name) || 'A resident'
+    const need: Need = {
+      id: `need-req-${Date.now()}`,
+      community: cleanName,
+      kind: 'person',
+      lat: 17.9615,
+      lng: -76.8735,
+      parish: 'St. Catherine',
+      area: cleanText(area) || 'Portmore',
+      items,
+      urgency: 'high',
+      peopleAffected: clampQty(household) || 1,
+      status: 'open',
+    }
+    set((s) => ({ needs: [need, ...s.needs] }))
+  },
+
+  // Citizen reports damage → a new repair on the board (Groundwork).
+  reportDamage: ({ damageType, area, photoUrl }) => {
+    const need: Need = {
+      id: `need-dmg-${Date.now()}`,
+      community: 'Reported by a resident',
+      kind: 'repair',
+      lat: 17.9605,
+      lng: -76.876,
+      parish: 'St. Catherine',
+      area: cleanText(area) || 'Portmore',
+      items: [],
+      urgency: 'high',
+      peopleAffected: 0,
+      status: 'open',
+      damageType: cleanText(damageType) || 'Storm damage',
+      photoUrl,
+    }
+    set((s) => ({ needs: [need, ...s.needs] }))
   },
 
   // Kicks off the scripted match → the demo delivery on the hero need.
@@ -220,6 +392,11 @@ export const useStore = create<LandfallState>((set, get) => ({
       selectedNeedId: null,
       selectedShelterId: null,
       activeDelivery: null,
+      you: SEED_YOU,
+      leaderboard: SEED_LEADERBOARD,
+      pendingItemsMoved: 0,
+      pendingPlace: '',
+      lastReward: null,
     }),
 
   toggleOfflineMode: () => set((s) => ({ offlineMode: !s.offlineMode })),

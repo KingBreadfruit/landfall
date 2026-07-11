@@ -23,7 +23,7 @@ import { cn } from '@/lib/utils'
  */
 export function MatchCard() {
   const setScreen = useStore((s) => s.setScreen)
-  const completeDemoDelivery = useStore((s) => s.completeDemoDelivery)
+  const startTransfer = useStore((s) => s.startTransfer)
   const delivery = useStore((s) => s.activeDelivery) ?? DEMO_DELIVERY
   const driver = useStore((s) =>
     s.drivers.find((d) => d.id === delivery.driverId),
@@ -90,10 +90,10 @@ export function MatchCard() {
             ))}
           </ol>
 
-          {/* Dev shortcut through the arc — replaced by the scripted
-              driver animation in the morning. */}
-          <Button size="lg" onClick={completeDemoDelivery}>
-            Mark delivered (dev)
+          {/* Advances the arc: plays the hand-over animation, then scores
+              the supply drop and reveals the delivery + points. */}
+          <Button size="lg" onClick={startTransfer}>
+            Confirm hand-over
           </Button>
         </CardContent>
       </Card>

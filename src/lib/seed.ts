@@ -1,4 +1,11 @@
-import type { Delivery, Driver, Need, Pledge, Shelter } from './types'
+import type {
+  Contributor,
+  Delivery,
+  Driver,
+  Need,
+  Pledge,
+  Shelter,
+} from './types'
 import { HERO_DRIVER_ID, HERO_NEED_ID } from './constants'
 import deliveryProof from '@/assets/delivery-proof.jpg'
 
@@ -128,6 +135,62 @@ export const SEED_NEEDS: Need[] = [
       { name: 'Baby supplies', unit: 'kits', qtyNeeded: 2, qtyPledged: 0 },
     ],
   },
+  // --- Repairs / Groundwork (damage reports from citizens) ---------------
+  // NOTE: placeholder photo — swap for real damage photos before the demo.
+  {
+    id: 'need-repair-tree',
+    community: 'Reported by a resident',
+    kind: 'repair',
+    lat: 17.9601,
+    lng: -76.8752,
+    parish: 'St. Catherine',
+    area: 'Braeton, Portmore',
+    urgency: 'high',
+    peopleAffected: 0,
+    status: 'open',
+    items: [],
+    damageType: 'Tree blown down',
+    photoUrl: deliveryProof,
+  },
+  {
+    id: 'need-repair-roof',
+    community: 'Reported by a resident',
+    kind: 'repair',
+    lat: 17.9948,
+    lng: -76.9498,
+    parish: 'St. Catherine',
+    area: 'Spanish Town',
+    urgency: 'critical',
+    peopleAffected: 0,
+    status: 'open',
+    items: [],
+    damageType: 'Roof damage',
+    photoUrl: deliveryProof,
+  },
+]
+
+// ---------------------------------------------------------------------------
+// Recognition: the current user + a seeded leaderboard. YOU starts at zero
+// so the demo shows the first-contribution "Verified" unlock live; pledge
+// ~15 items on the hero need and you cross 20 → "Top Contributor" too.
+// ---------------------------------------------------------------------------
+
+export const YOU_ID = 'contrib-you'
+
+export const SEED_YOU: Contributor = {
+  id: YOU_ID,
+  name: 'You',
+  points: 0,
+  contributions: 0,
+  badges: [],
+}
+
+export const SEED_LEADERBOARD: Contributor[] = [
+  { id: 'c-digicel', name: 'Digicel Foundation', points: 340, contributions: 24, badges: ['verified', 'top'] },
+  { id: 'c-hilo', name: 'Hi-Lo Cross Roads', points: 280, contributions: 19, badges: ['verified', 'top'] },
+  { id: 'c-marcus', name: 'Marcus Reid', points: 165, contributions: 12, badges: ['verified', 'top'] },
+  { id: 'c-openbible', name: 'Open Bible Church', points: 130, contributions: 9, badges: ['verified', 'top'] },
+  { id: 'c-alicia', name: 'Alicia Grant', points: 45, contributions: 4, badges: ['verified', 'top'] },
 ]
 
 // ---------------------------------------------------------------------------

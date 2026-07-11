@@ -3,6 +3,7 @@ import { SuppliesNeeded } from '@/components/SuppliesNeeded'
 import { NeedDetailSheet } from '@/components/NeedDetailSheet'
 import { PledgeFlow } from '@/components/PledgeFlow'
 import { MatchCard } from '@/components/MatchCard'
+import { TransferAnimation } from '@/components/TransferAnimation'
 import { DeliveryConfirm } from '@/components/DeliveryConfirm'
 import { PostNeedForm } from '@/components/PostNeedForm'
 import { RequestHelp } from '@/components/RequestHelp'
@@ -31,6 +32,7 @@ export default function App() {
             {screen === 'map' && <SuppliesNeeded />}
             {screen === 'pledge' && <PledgeFlow />}
             {screen === 'match' && <MatchCard />}
+            {screen === 'transfer' && <TransferAnimation />}
             {screen === 'delivery' && <DeliveryConfirm />}
           </div>
         )}

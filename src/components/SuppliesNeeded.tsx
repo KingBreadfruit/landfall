@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react'
-import { List, Map as MapIcon } from 'lucide-react'
+import { List, Map as MapIcon, Trophy } from 'lucide-react'
 import type { Need } from '@/lib/types'
 import { byUrgency } from '@/lib/needs'
 import { useStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
+import { Leaderboard } from './Leaderboard'
 import { MapView } from './MapView'
 import { NeedCard } from './NeedCard'
 
@@ -17,13 +18,14 @@ import { NeedCard } from './NeedCard'
  * (hidden, not unmounted) so Leaflet keeps its state and tile cache.
  */
 
-type FilterId = 'all' | 'shelter' | 'person'
+type FilterId = 'all' | 'shelter' | 'person' | 'repair'
 type ViewMode = 'list' | 'map'
 
 const FILTERS: { id: FilterId; label: string }[] = [
   { id: 'all', label: 'All' },
   { id: 'shelter', label: 'Shelters' },
   { id: 'person', label: 'People' },
+  { id: 'repair', label: 'Repairs' },
 ]
 
 function Group({ label, needs }: { label: string; needs: Need[] }) {
@@ -49,14 +51,17 @@ function Group({ label, needs }: { label: string; needs: Need[] }) {
 
 export function SuppliesNeeded() {
   const needs = useStore((s) => s.needs)
+  const youPoints = useStore((s) => s.you.points)
   const [filter, setFilter] = useState<FilterId>('all')
   const [view, setView] = useState<ViewMode>('list')
+  const [boardOpen, setBoardOpen] = useState(false)
 
-  const { shelters, people, criticalCount } = useMemo(() => {
+  const { shelters, people, repairs, criticalCount } = useMemo(() => {
     const sorted = [...needs].sort(byUrgency)
     return {
       shelters: sorted.filter((n) => n.kind === 'shelter'),
       people: sorted.filter((n) => n.kind === 'person'),
+      repairs: sorted.filter((n) => n.kind === 'repair'),
       criticalCount: sorted.filter((n) => n.urgency === 'critical').length,
     }
   }, [needs])
@@ -65,7 +70,7 @@ export function SuppliesNeeded() {
     <div className="bg-background flex h-full flex-col">
       {/* sub-header: title + view toggle */}
       <div className="border-b px-4 py-3">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <div>
             <h1 className="text-lg font-bold tracking-tight">
               Supplies Needed
@@ -75,7 +80,44 @@ export function SuppliesNeeded() {
             </p>
           </div>
 
-          <div className="flex rounded-lg border p-0.5">
+          <button
+            type="button"
+            onClick={() => setBoardOpen(true)}
+            className="border-urgency-high/40 bg-urgency-high/10 text-urgency-high flex shrink-0 cursor-pointer items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold"
+            title="Top contributors"
+          >
+            <Trophy className="size-3.5" />
+            {youPoints} pts
+          </button>
+        </div>
+
+        <div className="mt-3 flex items-center gap-2">
+          {/* filter chips (list view), scrollable on narrow screens */}
+          {view === 'list' ? (
+            <div className="flex flex-1 gap-1.5 overflow-x-auto">
+              {FILTERS.map((f) => (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => setFilter(f.id)}
+                  aria-pressed={filter === f.id}
+                  className={cn(
+                    'shrink-0 cursor-pointer rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+                    filter === f.id
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'text-muted-foreground',
+                  )}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="flex-1" />
+          )}
+
+          {/* view toggle */}
+          <div className="flex shrink-0 rounded-lg border p-0.5">
             {(['list', 'map'] as ViewMode[]).map((mode) => {
               const Icon = mode === 'list' ? List : MapIcon
               return (
@@ -98,28 +140,6 @@ export function SuppliesNeeded() {
             })}
           </div>
         </div>
-
-        {/* filter chips — only meaningful for the list */}
-        {view === 'list' && (
-          <div className="mt-3 flex gap-1.5">
-            {FILTERS.map((f) => (
-              <button
-                key={f.id}
-                type="button"
-                onClick={() => setFilter(f.id)}
-                aria-pressed={filter === f.id}
-                className={cn(
-                  'cursor-pointer rounded-full border px-3 py-1 text-xs font-medium transition-colors',
-                  filter === f.id
-                    ? 'border-primary bg-primary text-primary-foreground'
-                    : 'text-muted-foreground',
-                )}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
       {/* content: list and map both live here; map stays mounted */}
@@ -130,11 +150,14 @@ export function SuppliesNeeded() {
             view !== 'list' && 'hidden',
           )}
         >
-          {filter !== 'person' && (
+          {(filter === 'all' || filter === 'shelter') && (
             <Group label="Shelters" needs={shelters} />
           )}
-          {filter !== 'shelter' && (
+          {(filter === 'all' || filter === 'person') && (
             <Group label="People in need" needs={people} />
+          )}
+          {(filter === 'all' || filter === 'repair') && (
+            <Group label="Roads & repairs" needs={repairs} />
           )}
         </div>
 
@@ -142,6 +165,8 @@ export function SuppliesNeeded() {
           <MapView active={view === 'map'} />
         </div>
       </div>
+
+      <Leaderboard open={boardOpen} onOpenChange={setBoardOpen} />
     </div>
   )
 }
