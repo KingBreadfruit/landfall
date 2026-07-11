@@ -23,6 +23,82 @@ when a storm comes.
 Pitch line: *"Every team today built an app for a normal day. We built the
 one for the day nothing else works."*
 
+## ⚠️ v2 REWORK — READ FIRST (authoritative spec)
+
+We are moving from a mocked, single-device demo to a **real app with a
+Supabase backend**, worked on by three agents in parallel. Everything
+below overrides older sections where they conflict.
+
+### Lanes (avoid three agents editing the same files)
+- **Claude Design** — UI/UX system + screen layouts (visual). Owns look &
+  feel, component styling, the 3-category volunteer board layout.
+- **Cowork** — Supabase backend: schema, auth (email confirmation OFF),
+  realtime, storage, seed. Hands back `VITE_SUPABASE_URL` +
+  `VITE_SUPABASE_ANON_KEY`.
+- **Claude Code (me)** — wiring/logic: Supabase client + auth context,
+  replace the Zustand seed with live data, implement the ticket / QR /
+  inventory / holding flows. Waits on Cowork's keys before wiring data.
+
+### Auth
+- Supabase email/password. **Email confirmation DISABLED** — sign up →
+  straight into the app, no confirm step. Keep signup minimal; the meat is
+  the app, not onboarding.
+- Each user has a **profile with a persisted points total** (+ badges).
+
+### Volunteer board = THREE distinct need types, each its own category
+1. **Shelter requests** — a shelter asking for goods. The shelter's
+   **inventory/current stock is NOT shown to volunteers** — only what the
+   shelter explicitly *requests*.
+2. **People-in-need requests** — lead with the **ITEM needed**; the
+   requester's **name is secondary** (keep it, just demote it).
+3. **Repairs** — damage reports (unchanged concept).
+Each is its own category with its own treatment (Design to lay out).
+
+### Citizen supply request flow (safety-first, shelter-mediated + QR)
+Citizens do **not** expose their home location. Goods are routed to a
+**shelter the citizen chooses** (not their house) unless absolutely
+necessary. Lifecycle:
+1. Citizen browses the category list, selects items → a friendly
+   "**request submitted**" confirmation container.
+2. A volunteer **claims** the run (Uber-Eats style, one claimer).
+3. Citizen is alerted: "**collected by {volunteer}, en route to
+   {shelter} for drop-off**", and a **QR code appears** (encodes their
+   identity/ticket).
+4. The **shelter is alerted** a drop-off is incoming and preps to receive.
+5. Citizen shows the QR at the shelter; **staff scan to verify** the
+   person is the intended recipient, then **take a photo of the person
+   with the goods** → **ticket closed**. Points awarded to the volunteer
+   on close.
+
+### Shelter flows (ONE shelter for the hackathon)
+1. **Inventory stock** — the shelter owns its inventory in the system;
+   staff update it and the **live tracker** on the shelter page reflects it.
+2. **Requesting goods** — reuse the citizen request workflow, but shelter
+   requests are a **DISTINCT source from citizen requests** (flag/label
+   them; they must be told apart on the board and in data).
+3. **Receiving goods** — same receive workflow, tweaked: staff **photo the
+   goods** (not themselves), confirm items + quantities. If the drop
+   matches the request → **Confirm**. If not → enter actual received
+   amounts → **inventory adjusts** accordingly.
+4. **Incoming people** — notifications that someone is on the way (as
+   before). **Never turn anyone away:** walk-ins (no prior notice) are
+   taken the same way; if the shelter is **full**, place them in
+   **holding** until they can be **transferred** to another shelter.
+
+### Points / recognition
+- Supply drop = `5 + items`; Groundwork (repair) = `10`. Persisted per
+  user profile. Badges: **Verified** (first contribution), **Top** (20).
+
+### My suggested additions (flag, not yet locked)
+- Ticket lifecycle enum: `open → claimed → picked_up → at_shelter →
+  verified → closed` (+ `cancelled`); single-claim guard so two
+  volunteers can't grab the same run.
+- Proof-of-delivery photo + QR verify is what triggers points (prevents
+  gaming).
+- "Holding" needs a transfer action (target shelter) so no-one is stuck.
+
+---
+
 ## THE ONE THING THAT WINS: the 60-second demo arc
 
 Everything exists to make this single flow flawless and beautiful:
