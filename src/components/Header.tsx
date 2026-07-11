@@ -1,5 +1,7 @@
 import { useEffect } from 'react'
+import { LogOut } from 'lucide-react'
 import { APP_NAME } from '@/lib/constants'
+import { useAuth } from '@/lib/auth'
 import { useStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
 
@@ -11,6 +13,7 @@ export function Header() {
   const offline = useStore((s) => s.offlineMode)
   const toggleOfflineMode = useStore((s) => s.toggleOfflineMode)
   const setOfflineMode = useStore((s) => s.setOfflineMode)
+  const signOut = useAuth((s) => s.signOut)
 
   useEffect(() => {
     const goOffline = () => setOfflineMode(true)
@@ -47,23 +50,34 @@ export function Header() {
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={toggleOfflineMode}
-        className={cn(
-          'mono-label flex h-[30px] shrink-0 items-center gap-1.5 rounded-[9px] border px-[11px] text-[9px] font-bold',
-          offline
-            ? 'border-urgency-high/45 bg-urgency-high/10 text-urgency-high'
-            : 'border-success/40 bg-success/10 text-success',
-        )}
-        title="Toggle offline (demo)"
-      >
-        <span
-          className="block size-1.5 rounded-full bg-current"
-          style={{ animation: 'lf-blink 1.6s infinite' }}
-        />
-        {offline ? 'Offline · 3 pending' : 'Online'}
-      </button>
+      <div className="flex shrink-0 items-center gap-1.5">
+        <button
+          type="button"
+          onClick={toggleOfflineMode}
+          className={cn(
+            'mono-label flex h-[30px] items-center gap-1.5 rounded-[9px] border px-[11px] text-[9px] font-bold',
+            offline
+              ? 'border-urgency-high/45 bg-urgency-high/10 text-urgency-high'
+              : 'border-success/40 bg-success/10 text-success',
+          )}
+          title="Toggle offline (demo)"
+        >
+          <span
+            className="block size-1.5 rounded-full bg-current"
+            style={{ animation: 'lf-blink 1.6s infinite' }}
+          />
+          {offline ? 'Offline · 3 pending' : 'Online'}
+        </button>
+        <button
+          type="button"
+          onClick={() => signOut()}
+          className="border-border text-muted-foreground hover:text-foreground flex size-[30px] items-center justify-center rounded-[9px] border"
+          title="Sign out"
+          aria-label="Sign out"
+        >
+          <LogOut className="size-4" />
+        </button>
+      </div>
     </header>
   )
 }
