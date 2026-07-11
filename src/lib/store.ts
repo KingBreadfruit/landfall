@@ -21,6 +21,7 @@ import {
   SEED_LEADERBOARD,
   SEED_NEEDS,
   SEED_PLEDGES,
+  SEED_RUNS,
   SEED_SHELTERS,
   SEED_YOU,
 } from './seed'
@@ -173,7 +174,7 @@ export const useStore = create<LandfallState>()(
   shelters: SEED_SHELTERS,
   selectedNeedId: null,
   selectedShelterId: null,
-  runs: [],
+  runs: SEED_RUNS,
   activeRunId: null,
   activeDelivery: null,
   offlineMode: false,
@@ -457,7 +458,9 @@ export const useStore = create<LandfallState>()(
       // Keep user-added data across refreshes (same device). Points live in
       // the profile (Supabase / localStorage); UI/nav state is not persisted.
       name: 'landfall-store',
-      version: 1,
+      // Bumped to 2 to ship the seeded demo data — old empty/broken state
+      // saved in a browser is discarded so the fresh seed loads.
+      version: 2,
       partialize: (s) => ({
         needs: s.needs,
         runs: s.runs,
