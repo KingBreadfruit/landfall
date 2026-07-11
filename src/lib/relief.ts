@@ -37,6 +37,30 @@ export function itemCap(item: ReliefItem, household: number): number {
   return Math.min(HARD_CAP, Math.max(1, Math.round(item.perPerson * household)))
 }
 
+/**
+ * Total units a household may request across all items — stops anyone
+ * grabbing one of everything. Scales with household size.
+ */
+export function totalCap(household: number): number {
+  return Math.max(3, household * 3)
+}
+
+const SINGULAR: Record<string, string> = {
+  cases: 'case',
+  boxes: 'box',
+  kits: 'kit',
+  tarps: 'tarp',
+  blankets: 'blanket',
+  sets: 'set',
+  packs: 'pack',
+  bottles: 'bottle',
+}
+
+/** Grammatically correct unit for a quantity ("1 case", "2 cases"). */
+export function unitLabel(qty: number, unit: string): string {
+  return qty === 1 ? (SINGULAR[unit] ?? unit) : unit
+}
+
 // ---------------------------------------------------------------------------
 // Damage reports (Repairs / Groundwork).
 // ---------------------------------------------------------------------------

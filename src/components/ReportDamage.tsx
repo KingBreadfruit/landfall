@@ -1,11 +1,12 @@
-import { useRef, useState } from 'react'
-import { ArrowLeft, Camera, Camera as CameraIcon } from 'lucide-react'
+import { useState } from 'react'
+import { ArrowLeft, Camera, Camera as CameraIcon, CheckCircle2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { DAMAGE_TYPES } from '@/lib/relief'
 import { useStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
+import mockProof from '@/assets/delivery-proof.jpg'
 
 /**
  * Citizen damage report: pick what happened, snap a photo, post it to the
@@ -23,12 +24,6 @@ export function ReportDamage({
   const [typeId, setTypeId] = useState<string | null>(null)
   const [area, setArea] = useState('Gregory Park, Portmore')
   const [photo, setPhoto] = useState<string | undefined>()
-  const fileRef = useRef<HTMLInputElement>(null)
-
-  const onPickPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) setPhoto(URL.createObjectURL(file))
-  }
 
   const send = () => {
     const type = DAMAGE_TYPES.find((t) => t.id === typeId)
@@ -78,34 +73,25 @@ export function ReportDamage({
         </div>
 
         <Label className="mt-5 mb-2 block">Photo</Label>
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*"
-          capture="environment"
-          className="hidden"
-          onChange={onPickPhoto}
-        />
         {photo ? (
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            className="block w-full overflow-hidden rounded-xl border"
-          >
+          <div className="relative w-full overflow-hidden rounded-xl border">
             <img
               src={photo}
               alt="Damage"
               className="aspect-video w-full object-cover"
             />
-          </button>
+            <span className="absolute right-2 bottom-2 flex items-center gap-1 rounded-full bg-emerald-600 px-2 py-0.5 text-xs font-medium text-white">
+              <CheckCircle2 className="size-3" /> Uploaded
+            </span>
+          </div>
         ) : (
           <button
             type="button"
-            onClick={() => fileRef.current?.click()}
+            onClick={() => setPhoto(mockProof)}
             className="text-muted-foreground hover:bg-accent flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed"
           >
             <Camera className="size-8" />
-            <span className="text-sm">Take a photo</span>
+            <span className="text-sm">Take a photo (demo)</span>
           </button>
         )}
 

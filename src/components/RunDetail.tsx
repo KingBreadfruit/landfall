@@ -1,8 +1,10 @@
-import { useRef } from 'react'
+import { useState } from 'react'
 import {
   ArrowLeft,
   BadgeCheck,
   Camera,
+  CheckCircle2,
+  Loader2,
   MapPin,
   Navigation,
   ShieldCheck,
@@ -11,12 +13,16 @@ import {
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { directionsUrl } from '@/lib/constants'
+import { unitLabel } from '@/lib/relief'
 import { useStore } from '@/lib/store'
+import mockProof from '@/assets/delivery-proof.jpg'
 import { MockQR } from './MockQR'
 
 /**
  * One claimed run, driven by its status:
  *   photograph the items → admin verifies → QR + drop-off shown → deliver.
+ * The camera is MOCKED (no real gallery/upload) — tapping simulates the
+ * upload and confirms it.
  */
 export function RunDetail() {
   const run = useStore((s) => s.runs.find((r) => r.id === s.activeRunId))
@@ -24,13 +30,16 @@ export function RunDetail() {
   const verifyActiveRun = useStore((s) => s.verifyActiveRun)
   const completeActiveRun = useStore((s) => s.completeActiveRun)
   const backToRuns = useStore((s) => s.backToRuns)
-  const fileRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
 
   if (!run) return null
 
-  const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) uploadRunPhoto(URL.createObjectURL(file))
+  const mockUpload = () => {
+    setUploading(true)
+    window.setTimeout(() => {
+      uploadRunPhoto(mockProof)
+      setUploading(false)
+    }, 1100)
   }
 
   return (
@@ -56,37 +65,47 @@ export function RunDetail() {
             <div key={it.name} className="flex justify-between text-sm">
               <span className="font-medium">{it.name}</span>
               <span className="text-muted-foreground">
-                {it.qty} {it.unit}
+                {it.qty} {unitLabel(it.qty, it.unit)}
               </span>
             </div>
           ))}
         </CardContent>
       </Card>
 
-      {/* Step 1 — photograph the items */}
+      {/* Step 1 — photograph the items (mocked camera) */}
       {run.status === 'to_photograph' && (
         <>
           <p className="text-muted-foreground text-sm">
             Photograph <b>all</b> the items to claim this run. No verified
             photo, no claim.
           </p>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="hidden"
-            onChange={onPick}
-          />
-          <Button size="lg" onClick={() => fileRef.current?.click()}>
-            <Camera /> Photo the items
-          </Button>
+          {uploading ? (
+            <Card>
+              <CardContent className="flex flex-col items-center gap-2 py-2 text-center">
+                <Loader2 className="text-muted-foreground size-6 animate-spin" />
+                <p className="text-sm font-medium">
+                  Uploading {run.items.length} photos…
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <Button size="lg" onClick={mockUpload}>
+              <Camera /> Photo the items ({run.items.length})
+            </Button>
+          )}
+          <p className="text-muted-foreground text-center text-xs">
+            Demo: tap to simulate photographing the items — no real camera.
+          </p>
         </>
       )}
 
       {/* Step 2 — awaiting admin verification */}
       {run.status === 'pending' && (
         <>
+          <div className="flex items-center gap-2 text-sm font-medium text-emerald-600">
+            <CheckCircle2 className="size-4" />
+            {run.items.length} photos uploaded
+          </div>
           {run.itemsPhoto && (
             <img
               src={run.itemsPhoto}
