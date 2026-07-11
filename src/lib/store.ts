@@ -275,7 +275,15 @@ export const useStore = create<LandfallState>()(
       shelterLng: DROPOFF_SHELTER.lng,
     }
     set({
-      needs: needs.filter((n) => n.id !== needId),
+      // A shelter's VENUE stays on the board/map after its request is
+      // claimed — only clear the open request. Person/repair needs leave
+      // the board entirely.
+      needs:
+        need.kind === 'shelter'
+          ? needs.map((n) =>
+              n.id === needId ? { ...n, items: [], urgency: 'normal' } : n,
+            )
+          : needs.filter((n) => n.id !== needId),
       runs: [run, ...runs],
       activeRunId: run.id,
       selectedNeedId: null,
@@ -456,6 +464,30 @@ export const useStore = create<LandfallState>()(
         shelters: s.shelters,
         pledges: s.pledges,
       }),
+      // Reconcile persisted state with the current build. The Portmore
+      // drop-off hub (need + shelter) must ALWAYS be present — an earlier
+      // build removed it from `needs` when its request was claimed, which
+      // left stale browsers with an empty map and a shelter row that
+      // wouldn't render. Re-inject it if it's missing.
+      merge: (persisted, current) => {
+        const p = (persisted as Partial<LandfallState>) ?? {}
+        const needs = p.needs ?? current.needs
+        const needsWithHub = needs.some((n) => n.id === HERO_NEED_ID)
+          ? needs
+          : [...SEED_NEEDS, ...needs]
+        const shelters = p.shelters ?? current.shelters
+        const sheltersWithHub = shelters.some(
+          (sh) => sh.needId === HERO_NEED_ID,
+        )
+          ? shelters
+          : [...SEED_SHELTERS, ...shelters]
+        return {
+          ...current,
+          ...p,
+          needs: needsWithHub,
+          shelters: sheltersWithHub,
+        }
+      },
     },
   ),
 )

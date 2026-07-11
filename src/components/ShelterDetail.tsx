@@ -5,6 +5,7 @@ import {
   HandHeart,
   IdCard,
   Megaphone,
+  Navigation,
   Phone,
   QrCode,
   TriangleAlert,
@@ -16,7 +17,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
-import { URGENCY_LABELS } from '@/lib/constants'
+import { directionsUrl, URGENCY_LABELS } from '@/lib/constants'
 import { locationLabel } from '@/lib/needs'
 import { useStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
@@ -68,8 +69,30 @@ export function ShelterDetail() {
         >
           <ArrowLeft className="size-4" /> Shelters
         </button>
-        <h1 className="text-lg font-bold tracking-tight">{need.community}</h1>
-        <p className="text-muted-foreground text-xs">{locationLabel(need)}</p>
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <h1 className="text-lg font-bold tracking-tight">
+              {need.community}
+            </h1>
+            <p className="text-muted-foreground text-xs">
+              {locationLabel(need)}
+            </p>
+          </div>
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className="shrink-0"
+          >
+            <a
+              href={directionsUrl(need.lat, need.lng)}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Navigation /> Directions
+            </a>
+          </Button>
+        </div>
 
         <div className="mt-2 flex items-center gap-2">
           <Progress value={pct} className="h-1.5" />
