@@ -116,6 +116,7 @@ let subscribed = false
 export function subscribeToBoard(
   onUpsert: (need: Need) => void,
   onRemove: (id: string) => void,
+  onStatus?: (live: boolean) => void,
 ): void {
   if (!hasSupabase || subscribed) return
   subscribed = true
@@ -137,7 +138,9 @@ export function subscribeToBoard(
           else onRemove(next.id)
         },
       )
-      .subscribe()
+      .subscribe((status) => {
+        onStatus?.(status === 'SUBSCRIBED')
+      })
   } catch {
     subscribed = false
   }

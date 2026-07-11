@@ -3,6 +3,12 @@
 // in vite.config.ts).
 export const APP_NAME = 'Landfall'
 
+// The shelter / government operator account. This email keeps full access
+// (including the shelter roster view); everyone else is scoped to the role
+// they pick at sign-up. The shelter role can't be self-selected — it holds
+// residents' TRNs, so it stays with the operator only.
+export const ADMIN_EMAIL = 'joshuakerrcool@gmail.com'
+
 export const TAGLINE = 'The emergency logistics layer for the island.'
 
 // Map configuration — Jamaica

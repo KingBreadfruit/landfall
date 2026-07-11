@@ -10,10 +10,11 @@ import { cn } from '@/lib/utils'
 
 type Role = Profile['role']
 
+// Shelter staff is intentionally NOT selectable — that view holds
+// residents' TRNs and stays with the operator account only.
 const ROLES: { id: Role; label: string }[] = [
   { id: 'volunteer', label: 'Volunteer' },
   { id: 'citizen', label: 'Citizen' },
-  { id: 'shelter', label: 'Shelter staff' },
 ]
 
 /**
@@ -105,7 +106,7 @@ export function AuthScreen() {
             </div>
             <div className="flex flex-col gap-1.5">
               <Label>I am a…</Label>
-              <div className="grid grid-cols-3 gap-1.5">
+              <div className="grid grid-cols-2 gap-1.5">
                 {ROLES.map((r) => (
                   <button
                     key={r.id}

@@ -134,6 +134,8 @@ type LandfallState = {
   activeDelivery: Delivery | null
   /** Pitch toggle: shows the "Offline — pending sync" header badge. */
   offlineMode: boolean
+  /** True once we're subscribed to the shared board (cross-device live). */
+  boardLive: boolean
 
   // Recognition
   you: Contributor
@@ -200,6 +202,7 @@ export const useStore = create<LandfallState>()(
   activeRunId: null,
   activeDelivery: null,
   offlineMode: false,
+  boardLive: false,
 
   you: SEED_YOU,
   leaderboard: SEED_LEADERBOARD,
@@ -503,6 +506,7 @@ export const useStore = create<LandfallState>()(
     subscribeToBoard(
       (need) => set((s) => ({ needs: upsertNeed(s.needs, need) })),
       (id) => set((s) => ({ needs: s.needs.filter((n) => n.id !== id) })),
+      (live) => set({ boardLive: live }),
     )
   },
     }),
@@ -510,9 +514,8 @@ export const useStore = create<LandfallState>()(
       // Keep user-added data across refreshes (same device). Points live in
       // the profile (Supabase / localStorage); UI/nav state is not persisted.
       name: 'landfall-store',
-      // Bumped to 2 to ship the seeded demo data — old empty/broken state
-      // saved in a browser is discarded so the fresh seed loads.
-      version: 2,
+      // Bump to reset stale browsers to the fresh seed + new role model.
+      version: 3,
       partialize: (s) => ({
         needs: s.needs,
         runs: s.runs,

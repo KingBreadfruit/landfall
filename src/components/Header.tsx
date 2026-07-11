@@ -13,6 +13,7 @@ export function Header() {
   const offline = useStore((s) => s.offlineMode)
   const toggleOfflineMode = useStore((s) => s.toggleOfflineMode)
   const setOfflineMode = useStore((s) => s.setOfflineMode)
+  const boardLive = useStore((s) => s.boardLive)
   const signOut = useAuth((s) => s.signOut)
 
   useEffect(() => {
@@ -51,6 +52,22 @@ export function Header() {
       </div>
 
       <div className="flex shrink-0 items-center gap-1.5">
+        <span
+          className={cn(
+            'mono-label flex h-[30px] items-center gap-1.5 rounded-[9px] border px-[10px] text-[9px] font-bold',
+            boardLive
+              ? 'border-success/40 bg-success/10 text-success'
+              : 'border-border text-muted-foreground',
+          )}
+          title={
+            boardLive
+              ? 'Live — synced to the shared board across devices'
+              : 'Local — not connected to the shared board'
+          }
+        >
+          <span className="block size-1.5 rounded-full bg-current" />
+          {boardLive ? 'Synced' : 'Local'}
+        </span>
         <button
           type="button"
           onClick={toggleOfflineMode}

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { ClipboardList } from 'lucide-react'
 import type { Need } from '@/lib/types'
+import { URGENCY_COLORS } from '@/lib/constants'
 import { byUrgency } from '@/lib/needs'
 import { useAuth } from '@/lib/auth'
 import { useStore } from '@/lib/store'
@@ -22,6 +23,14 @@ const FILTERS: { id: FilterId; label: string }[] = [
   { id: 'shelter', label: 'Shelters' },
   { id: 'person', label: 'People' },
   { id: 'repair', label: 'Repairs' },
+]
+
+// What the urgency tags mean — a plain-language key so anyone reading the
+// board knows how to prioritise.
+const URGENCY_KEY: { label: string; color: string; meaning: string }[] = [
+  { label: 'Critical', color: URGENCY_COLORS.critical, meaning: 'life-threatening — act now' },
+  { label: 'High', color: URGENCY_COLORS.high, meaning: 'urgent, needed soon' },
+  { label: 'Normal', color: URGENCY_COLORS.normal, meaning: 'important, not urgent' },
 ]
 
 function Group({
@@ -139,6 +148,24 @@ export function SuppliesNeeded() {
             >
               {f.label}
             </button>
+          ))}
+        </div>
+
+        <div className="mt-[11px] flex flex-wrap items-center gap-x-3 gap-y-1">
+          <span className="mono-label text-[9px] tracking-[0.14em] text-muted-foreground">
+            Key
+          </span>
+          {URGENCY_KEY.map((u) => (
+            <span key={u.label} className="flex items-center gap-1.5">
+              <span
+                className="block size-2 rounded-full"
+                style={{ background: u.color }}
+              />
+              <span className="text-[10.5px] text-muted-foreground">
+                <span className="font-semibold text-foreground">{u.label}</span>
+                &nbsp;· {u.meaning}
+              </span>
+            </span>
           ))}
         </div>
       </div>
