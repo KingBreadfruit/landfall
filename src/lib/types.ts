@@ -25,6 +25,48 @@ export type Need = {
   status: 'open' | 'matched' | 'fulfilled'
 }
 
+/** A person logged as staying at a shelter (government-official view). */
+export type Occupant = {
+  id: string
+  name: string
+  /** Tax Registration Number — 9 digits, shown as 123-456-789. */
+  trn: string
+  /** Date of birth, display string. */
+  dob: string
+  /** When they were checked in, display time. */
+  checkedInAt: string
+}
+
+/**
+ * Someone who requested to stay and is on their way. If they don't arrive
+ * by `eta`, the shelter flips them to 'overdue' (amber) — phone shows so
+ * staff can call, and `lastSeen` (where they were when they requested) is
+ * revealed after a wait.
+ */
+export type IncomingGuest = {
+  id: string
+  name: string
+  trn: string
+  dob: string
+  phone: string
+  /** Expected arrival, display time. */
+  eta: string
+  status: 'enroute' | 'overdue' | 'arrived'
+  /** Last known location (from the request), revealed when overdue. */
+  lastSeen?: string
+}
+
+/**
+ * Occupancy layer over a shelter-kind Need. Keyed by needId so supplies
+ * (items/pledges) and people (occupants/incoming) share one shelter.
+ */
+export type Shelter = {
+  needId: string
+  capacity: number
+  occupants: Occupant[]
+  incoming: IncomingGuest[]
+}
+
 export type Driver = {
   id: string
   name: string

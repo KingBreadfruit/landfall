@@ -7,7 +7,8 @@ import { DeliveryConfirm } from '@/components/DeliveryConfirm'
 import { PostNeedForm } from '@/components/PostNeedForm'
 import { RequestHelp } from '@/components/RequestHelp'
 import { RoleSwitcher } from '@/components/RoleSwitcher'
-import { ShelterDashboard } from '@/components/ShelterDashboard'
+import { ShelterList } from '@/components/ShelterList'
+import { ShelterDetail } from '@/components/ShelterDetail'
 import { useStore } from '@/lib/store'
 
 /**
@@ -18,6 +19,7 @@ import { useStore } from '@/lib/store'
 export default function App() {
   const role = useStore((s) => s.role)
   const screen = useStore((s) => s.screen)
+  const selectedShelterId = useStore((s) => s.selectedShelterId)
 
   return (
     <div className="flex h-full flex-col">
@@ -35,7 +37,13 @@ export default function App() {
 
         {role === 'shelter' && (
           <div className="bg-background absolute inset-0">
-            {screen === 'post-need' ? <PostNeedForm /> : <ShelterDashboard />}
+            {screen === 'post-need' ? (
+              <PostNeedForm />
+            ) : selectedShelterId ? (
+              <ShelterDetail />
+            ) : (
+              <ShelterList />
+            )}
           </div>
         )}
 
