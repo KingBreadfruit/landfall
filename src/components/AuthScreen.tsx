@@ -1,9 +1,8 @@
 import { useState } from 'react'
-import { LifeBuoy } from 'lucide-react'
 import type { Profile } from '@/lib/db'
 import { useAuth } from '@/lib/auth'
 import { hasSupabase } from '@/lib/supabase'
-import { APP_NAME, TAGLINE } from '@/lib/constants'
+import { APP_NAME } from '@/lib/constants'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -50,9 +49,20 @@ export function AuthScreen() {
   return (
     <div className="mx-auto flex h-full w-full max-w-sm flex-col justify-center gap-5 p-6">
       <div className="flex flex-col items-center gap-2 text-center">
-        <LifeBuoy className="text-urgency-critical size-10" />
+        <div
+          className="flex size-12 items-center justify-center rounded-xl"
+          style={{ background: '#161d26', boxShadow: 'inset 0 0 0 1px rgba(255,176,32,.28)' }}
+        >
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="9.2" stroke="#ffb020" strokeWidth="1.4" opacity=".45" />
+            <circle cx="12" cy="12" r="5" stroke="#ffb020" strokeWidth="1.4" opacity=".8" />
+            <circle cx="12" cy="12" r="1.9" fill="#ffb020" />
+          </svg>
+        </div>
         <h1 className="text-2xl font-bold tracking-tight">{APP_NAME}</h1>
-        <p className="text-muted-foreground text-sm">{TAGLINE}</p>
+        <p className="mono-label text-[10px] tracking-[0.14em] text-muted-foreground">
+          Storm dispatch · the island's logistics layer
+        </p>
       </div>
 
       {!hasSupabase && (

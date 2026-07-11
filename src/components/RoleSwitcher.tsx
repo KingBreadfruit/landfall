@@ -11,33 +11,39 @@ const ROLES: { id: Role; label: string; icon: typeof Boxes }[] = [
 ]
 
 /**
- * Bottom tab bar for switching perspective: volunteer / shelter / person
- * in need. One presenter can flip between all three views live with a
- * thumb — that's the point.
+ * Bottom tab bar — the console's role selector. One thumb flips the whole
+ * perspective; the active tab glows amber with a top rule.
  */
 export function RoleSwitcher() {
   const role = useStore((s) => s.role)
   const setRole = useStore((s) => s.setRole)
 
   return (
-    <nav className="z-20 grid grid-cols-4 border-t bg-background pb-[env(safe-area-inset-bottom)]">
-      {ROLES.map(({ id, label, icon: Icon }) => (
-        <button
-          key={id}
-          type="button"
-          onClick={() => setRole(id)}
-          aria-current={role === id ? 'page' : undefined}
-          className={cn(
-            'flex min-h-14 cursor-pointer flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-xs transition-colors',
-            role === id
-              ? 'text-urgency-critical font-semibold'
-              : 'text-muted-foreground',
-          )}
-        >
-          <Icon className="size-5 shrink-0" />
-          <span className="text-center leading-tight">{label}</span>
-        </button>
-      ))}
+    <nav
+      className="z-20 grid grid-cols-4 border-t border-border pb-[max(8px,env(safe-area-inset-bottom))]"
+      style={{ background: '#0b1017' }}
+    >
+      {ROLES.map(({ id, label, icon: Icon }) => {
+        const active = role === id
+        return (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setRole(id)}
+            aria-current={active ? 'page' : undefined}
+            className={cn(
+              'relative flex min-h-[58px] cursor-pointer flex-col items-center justify-center gap-[5px] px-1 py-2.5 transition-colors',
+              active ? 'text-primary' : 'text-muted-foreground',
+            )}
+            style={active ? { boxShadow: 'inset 0 2px 0 #ffb020' } : undefined}
+          >
+            <Icon className="size-[21px]" strokeWidth={1.7} />
+            <span className="mono-label text-[9.5px] font-bold tracking-[0.06em]">
+              {label}
+            </span>
+          </button>
+        )
+      })}
     </nav>
   )
 }

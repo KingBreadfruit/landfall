@@ -4,60 +4,50 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/*
+ * Landfall — "Storm Dispatch" console theme (from Landfall.dc.html).
+ * Dark, tactical, amber-on-charcoal with Space Grotesk / Space Mono.
+ */
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.968 0.007 247.896);
-  --muted-foreground: oklch(0.554 0.046 257.417);
-  --accent: oklch(0.968 0.007 247.896);
-  --accent-foreground: oklch(0.208 0.042 265.755);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.929 0.013 255.508);
-  --input: oklch(0.929 0.013 255.508);
-  --ring: oklch(0.704 0.04 256.788);
-  /* Landfall urgency colors */
-  --urgency-critical: oklch(0.577 0.245 27.325);
-  --urgency-high: oklch(0.769 0.188 70.08);
-  --urgency-normal: oklch(0.623 0.214 259.815);
-}
+  --radius: 0.95rem;
 
-.dark {
-  --background: oklch(0.129 0.042 264.695);
-  --foreground: oklch(0.984 0.003 247.858);
-  --card: oklch(0.208 0.042 265.755);
-  --card-foreground: oklch(0.984 0.003 247.858);
-  --popover: oklch(0.208 0.042 265.755);
-  --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
-  --secondary: oklch(0.279 0.041 260.031);
-  --secondary-foreground: oklch(0.984 0.003 247.858);
-  --muted: oklch(0.279 0.041 260.031);
-  --muted-foreground: oklch(0.704 0.04 256.788);
-  --accent: oklch(0.279 0.041 260.031);
-  --accent-foreground: oklch(0.984 0.003 247.858);
-  --destructive: oklch(0.704 0.191 22.216);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.551 0.027 264.364);
+  --background: #0c1116;
+  --foreground: #f2f5f4;
+  --card: #131a22;
+  --card-foreground: #f2f5f4;
+  --popover: #131a22;
+  --popover-foreground: #f2f5f4;
+  --primary: #ffb020;
+  --primary-foreground: #12171c;
+  --secondary: #141b23;
+  --secondary-foreground: #f2f5f4;
+  --muted: #141b23;
+  --muted-foreground: #7c8894;
+  --accent: #1b2029;
+  --accent-foreground: #f2f5f4;
+  --destructive: #f5384a;
+  --destructive-foreground: #ffffff;
+  --border: #1d2530;
+  --input: #2a3340;
+  --ring: #ffb020;
+
+  /* Landfall urgency + status */
+  --urgency-critical: #f5384a;
+  --urgency-high: #f5920b;
+  --urgency-normal: #12b5c9;
+  --success: #16b877;
+
+  --font-sans: "Space Grotesk", system-ui, sans-serif;
+  --font-mono: "Space Mono", ui-monospace, monospace;
 }
 
 @theme inline {
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 5px);
+  --radius-md: calc(var(--radius) - 3px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -80,6 +70,7 @@
   --color-urgency-critical: var(--urgency-critical);
   --color-urgency-high: var(--urgency-high);
   --color-urgency-normal: var(--urgency-normal);
+  --color-success: var(--success);
 }
 
 @layer base {
@@ -88,8 +79,15 @@
   }
   body {
     @apply bg-background text-foreground;
-    /* Mobile app feel: no double-tap zoom, no pull-to-refresh
-       (a stray pull-to-refresh mid-pitch would restart the demo). */
+    font-family: var(--font-sans);
+    letter-spacing: -0.01em;
+    background-image: radial-gradient(
+      120% 90% at 50% -10%,
+      #12202a 0%,
+      #0a0f15 46%,
+      #070a0e 100%
+    );
+    /* Mobile app feel: no double-tap zoom, no pull-to-refresh. */
     touch-action: manipulation;
     overscroll-behavior: none;
     -webkit-tap-highlight-color: transparent;
@@ -101,39 +99,113 @@
   }
 }
 
-/* Leaflet z-index sits below our sheets/overlays.
-   The background is the graceful-degradation path: if OSM tiles can't
-   load (offline, blocked network), pins and UI float on this calm sea
-   tone instead of a broken grey grid. */
-.leaflet-container {
-  z-index: 0;
-  background: #c8d8dc;
+/* A mono, uppercase, letter-spaced label — the console vernacular. */
+.mono-label {
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
 }
 
-/* Pulse ring for critical need pins */
+/* Leaflet: dark tactical base so pins glow on charcoal (offline-safe). */
+.leaflet-container {
+  z-index: 0;
+  background: #0a0f15;
+}
+.leaflet-container .leaflet-tile {
+  filter: grayscale(0.5) brightness(0.55) contrast(1.05) hue-rotate(170deg);
+}
+.leaflet-control-attribution {
+  background: rgba(10, 15, 21, 0.7) !important;
+  color: rgba(255, 255, 255, 0.4) !important;
+}
+.leaflet-control-attribution a {
+  color: rgba(255, 176, 32, 0.7) !important;
+}
+
+/* ---- Animations (from the design) ---- */
 @keyframes landfall-pulse {
   0% {
     transform: scale(1);
-    opacity: 0.4;
+    opacity: 0.5;
   }
   100% {
-    transform: scale(2.2);
+    transform: scale(2.6);
     opacity: 0;
   }
 }
-
-/* Amber flash for an overdue (no-show) incoming guest at a shelter */
 @keyframes landfall-amber {
   0%,
   100% {
-    background-color: rgba(245, 158, 11, 0.08);
-    border-color: rgba(245, 158, 11, 0.45);
+    background-color: rgba(245, 146, 11, 0.1);
+    border-color: rgba(245, 146, 11, 0.45);
   }
   50% {
-    background-color: rgba(245, 158, 11, 0.2);
-    border-color: rgba(245, 158, 11, 1);
+    background-color: rgba(245, 146, 11, 0.22);
+    border-color: rgba(245, 146, 11, 1);
   }
 }
 .landfall-amber-flash {
-  animation: landfall-amber 1.4s ease-in-out infinite;
+  animation: landfall-amber 1.5s ease-in-out infinite;
+}
+@keyframes lf-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes lf-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes lf-pop {
+  0% {
+    transform: scale(0.82);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.04);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+@keyframes lf-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+@keyframes lf-sweep {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes lf-run {
+  0% {
+    left: -8%;
+  }
+  100% {
+    left: 86%;
+  }
+}
+.lf-rise {
+  animation: lf-rise 0.4s ease both;
+}
+.lf-fade {
+  animation: lf-fade 0.3s ease both;
+}
+.lf-pop {
+  animation: lf-pop 0.5s ease 0.3s both;
 }

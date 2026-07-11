@@ -21,9 +21,9 @@ export const TILE_ATTRIBUTION =
 
 // Urgency colors (kept in sync with the CSS variables in index.css).
 export const URGENCY_COLORS = {
-  critical: '#dc2626', // red
-  high: '#f59e0b', // amber
-  normal: '#3b82f6', // blue
+  critical: '#f5384a', // red
+  high: '#f5920b', // orange
+  normal: '#12b5c9', // cyan
 } as const
 
 export const URGENCY_LABELS = {

@@ -17,10 +17,12 @@ const badgeVariants = cva(
           'border-transparent bg-destructive text-destructive-foreground',
         outline: 'text-foreground',
         critical:
-          'border-transparent bg-urgency-critical text-white',
-        high: 'border-transparent bg-urgency-high text-white',
+          'mono-label border-urgency-critical/30 bg-urgency-critical/12 text-urgency-critical text-[9px] tracking-[0.1em]',
+        high: 'mono-label border-urgency-high/30 bg-urgency-high/12 text-urgency-high text-[9px] tracking-[0.1em]',
         normal:
-          'border-transparent bg-urgency-normal text-white',
+          'mono-label border-urgency-normal/30 bg-urgency-normal/12 text-urgency-normal text-[9px] tracking-[0.1em]',
+        success:
+          'border-transparent bg-success text-white',
       },
     },
     defaultVariants: {
