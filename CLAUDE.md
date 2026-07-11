@@ -27,9 +27,13 @@ one for the day nothing else works."*
 
 Everything exists to make this single flow flawless and beautiful:
 
-1. **Map (home)** — Jamaica, need-pins color-coded by urgency
-   (critical = red, high = amber, normal = blue).
-2. **Need detail** — tap a pin: "Portmore HS Shelter — 200 cases water,
+1. **Supplies Needed (home)** — the volunteer/helper view: a list of open
+   needs, separated into **Shelters** and **People in need** (filter: All
+   / Shelters / People), each with urgency, location, people count, and a
+   supply-progress bar. A **List⇄Map toggle** drops to the Jamaica map
+   (urgency-colored pins) when geography is wanted — the map is secondary,
+   not the whole page.
+2. **Need detail** — tap a need: "Portmore HS Shelter — 200 cases water,
    50 tarps needed • 340 people • CRITICAL".
 3. **Pledge** — "I can supply" → pick quantity → confirm → progress bar
    moves.
@@ -70,14 +74,18 @@ src/
   App.tsx                  shell + screen switching (Zustand, no router)
   lib/
     constants.ts           APP_NAME, map config, urgency colors, hero IDs
-    types.ts               Need, Item, Driver, Pledge, Delivery, Screen
+    types.ts               Need (kind: shelter|person), Item, Driver, …
     store.ts               demo flow state + actions
-    seed.ts                6 needs, 4 drivers, 2 pledges, DEMO_DELIVERY,
-                           DEMO_ROUTE (Marcus's scripted path to Portmore)
+    needs.ts               need helpers: progress %, sort, labels
+    sanitize.ts            input clamping/trimming (chaos-test hardening)
+    seed.ts                7 needs (4 shelters, 3 people), 4 drivers,
+                           2 pledges, DEMO_DELIVERY, DEMO_ROUTE
   components/
     ui/                    shadcn primitives
-    Header.tsx             logo + offline badge (click logo to toggle)
-    MapView.tsx            Leaflet map + pins (WORKS)
+    Header.tsx             logo + offline badge (auto + click to toggle)
+    SuppliesNeeded.tsx     volunteer home: separated list + List⇄Map toggle
+    NeedCard.tsx           one need as a scannable list row
+    MapView.tsx            Leaflet map + pins (WORKS), secondary via toggle
     NeedPin.tsx            urgency-colored divIcon markers, critical pulses
     NeedDetailSheet.tsx    bottom sheet + "I can supply" (WORKS)
     PledgeFlow.tsx         quantity picker + confirm (WORKS, moves bars)

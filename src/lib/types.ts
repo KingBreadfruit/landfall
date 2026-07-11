@@ -9,13 +9,18 @@ export type Item = {
 
 export type Need = {
   id: string
+  /** Shelter name, or the requester's name for a person in need. */
   community: string
-  kind: 'shelter' | 'community'
+  /** Who posted it: an official shelter, or a person affected. */
+  kind: 'shelter' | 'person'
   lat: number
   lng: number
   parish: string
+  /** Optional finer location (street / district), shown before parish. */
+  area?: string
   items: Item[]
   urgency: Urgency
+  /** Shelter: people sheltering. Person: household size. */
   peopleAffected: number
   status: 'open' | 'matched' | 'fulfilled'
 }
