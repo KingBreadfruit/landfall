@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 import type {
   BadgeKind,
   Category,
@@ -161,7 +162,9 @@ type LandfallState = {
   setOfflineMode: (offline: boolean) => void
 }
 
-export const useStore = create<LandfallState>((set, get) => ({
+export const useStore = create<LandfallState>()(
+  persist(
+    (set, get) => ({
   screen: 'map',
   role: 'volunteer',
   needs: SEED_NEEDS,
@@ -441,4 +444,18 @@ export const useStore = create<LandfallState>((set, get) => ({
   toggleOfflineMode: () => set((s) => ({ offlineMode: !s.offlineMode })),
 
   setOfflineMode: (offline) => set({ offlineMode: offline }),
-}))
+    }),
+    {
+      // Keep user-added data across refreshes (same device). Points live in
+      // the profile (Supabase / localStorage); UI/nav state is not persisted.
+      name: 'landfall-store',
+      version: 1,
+      partialize: (s) => ({
+        needs: s.needs,
+        runs: s.runs,
+        shelters: s.shelters,
+        pledges: s.pledges,
+      }),
+    },
+  ),
+)

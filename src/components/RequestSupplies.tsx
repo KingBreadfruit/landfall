@@ -3,8 +3,9 @@ import { ArrowLeft, Minus, Plus, ShoppingBasket } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { RELIEF_CATALOG, itemCap } from '@/lib/relief'
+import { RELIEF_CATALOG, itemCap, totalCap, unitLabel } from '@/lib/relief'
 import { useStore } from '@/lib/store'
+import { cn } from '@/lib/utils'
 
 /**
  * Supply request "shopping list" of relief items — used by citizens
@@ -43,6 +44,10 @@ export function RequestSupplies({
     (sum, it) => sum + Math.min(qtys[it.name] ?? 0, caps[it.name]),
     0,
   )
+
+  // Citizens have a total budget so no one requests one of everything.
+  const maxTotal = isShelter ? Infinity : totalCap(household)
+  const atBudget = total >= maxTotal
 
   const bump = (name: string, delta: number, cap: number) =>
     setQtys((q) => ({
@@ -127,6 +132,15 @@ export function RequestSupplies({
                 </Button>
               </div>
             </div>
+            <p
+              className={cn(
+                'text-xs',
+                atBudget ? 'text-urgency-high font-medium' : 'text-muted-foreground',
+              )}
+            >
+              {total} of {maxTotal} items chosen
+              {atBudget ? ' · limit reached' : ''}
+            </p>
           </div>
         )}
 
@@ -142,7 +156,9 @@ export function RequestSupplies({
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{item.name}</p>
                   <p className="text-muted-foreground text-xs">
-                    {isShelter ? item.unit : `up to ${cap} ${item.unit}`}
+                    {isShelter
+                      ? item.unit
+                      : `up to ${cap} ${unitLabel(cap, item.unit)}`}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -160,7 +176,7 @@ export function RequestSupplies({
                   <Button
                     variant="outline"
                     size="icon"
-                    disabled={qty >= cap}
+                    disabled={qty >= cap || atBudget}
                     onClick={() => bump(item.name, 1, cap)}
                   >
                     <Plus />
