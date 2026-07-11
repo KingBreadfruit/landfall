@@ -88,6 +88,11 @@
   }
   body {
     @apply bg-background text-foreground;
+    /* Mobile app feel: no double-tap zoom, no pull-to-refresh
+       (a stray pull-to-refresh mid-pitch would restart the demo). */
+    touch-action: manipulation;
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
   }
   html,
   body,

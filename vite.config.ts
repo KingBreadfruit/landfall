@@ -11,7 +11,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'pwa-icon.svg'],
+      includeAssets: ['favicon.svg', 'pwa-icon.svg', 'apple-touch-icon.png'],
       manifest: {
         name: 'Landfall',
         short_name: 'Landfall',
