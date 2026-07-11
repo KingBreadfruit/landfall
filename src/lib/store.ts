@@ -30,11 +30,37 @@ import { clampQty, cleanText } from './sanitize'
 import { useAuth } from './auth'
 import { hasSupabase, supabase } from './supabase'
 import {
+  type CheckIn,
+  fetchCheckins,
   fetchOpenNeeds,
+  insertCheckin,
   markRemoteNeed,
   subscribeToBoard,
   upsertRemoteNeed,
 } from './board'
+
+/** Add a check-in guest to the matching shelter's incoming list (deduped). */
+function addCheckin(shelters: Shelter[], ci: CheckIn): Shelter[] {
+  return shelters.map((sh) => {
+    if (sh.needId !== ci.shelterId) return sh
+    if (sh.incoming.some((g) => g.id === ci.id)) return sh
+    return {
+      ...sh,
+      incoming: [
+        {
+          id: ci.id,
+          name: ci.name,
+          trn: '—',
+          dob: '—',
+          phone: '—',
+          eta: ci.eta,
+          status: 'enroute' as const,
+        },
+        ...sh.incoming,
+      ],
+    }
+  })
+}
 
 /** Add or replace a need in a list, keyed by id (newest first when new). */
 function upsertNeed(list: Need[], need: Need): Need[] {
@@ -164,6 +190,7 @@ type LandfallState = {
     person: { name: string; trn: string; dob: string },
   ) => void
   checkInGuest: (shelterId: string, guestId: string) => void
+  declareIncoming: (shelterId: string, name: string) => void
   finishSupplyDelivery: () => void
   takeUpGroundwork: (needId: string) => void
   submitSupplyRequest: (payload: {
@@ -274,6 +301,19 @@ export const useStore = create<LandfallState>()(
         }
       }),
     }))
+  },
+
+  // A citizen declares they're heading to a shelter → shows up on the
+  // shelter's Incoming tab (staff can scan & check them in on arrival).
+  declareIncoming: (shelterId, name) => {
+    const clean = cleanText(name) || 'A resident'
+    const eta = new Date(Date.now() + 20 * 60000).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+    })
+    const ci: CheckIn = { id: `inc-${Date.now()}`, shelterId, name: clean, eta }
+    set((s) => ({ shelters: addCheckin(s.shelters, ci) }))
+    void insertCheckin(ci, currentUserId())
   },
 
   // --- Volunteer runs (claim → proof → verify → QR → deliver) ----------
@@ -501,15 +541,20 @@ export const useStore = create<LandfallState>()(
   // here too. Local seed needs are left untouched.
   loadBoard: async () => {
     if (!hasSupabase) return
-    const remote = await fetchOpenNeeds()
-    if (remote.length) {
+    const [remote, checkins] = await Promise.all([
+      fetchOpenNeeds(),
+      fetchCheckins(),
+    ])
+    if (remote.length || checkins.length) {
       set((s) => ({
         needs: remote.reduce((acc, n) => upsertNeed(acc, n), s.needs),
+        shelters: checkins.reduce((acc, c) => addCheckin(acc, c), s.shelters),
       }))
     }
     subscribeToBoard(
       (need) => set((s) => ({ needs: upsertNeed(s.needs, need) })),
       (id) => set((s) => ({ needs: s.needs.filter((n) => n.id !== id) })),
+      (ci) => set((s) => ({ shelters: addCheckin(s.shelters, ci) })),
       (live) => set({ boardLive: live }),
     )
   },

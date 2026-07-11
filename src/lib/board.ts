@@ -106,6 +106,55 @@ export async function markRemoteNeed(
   }
 }
 
+// --- Shelter check-ins (citizen declares they're heading to a shelter) -----
+
+export type CheckIn = { id: string; shelterId: string; name: string; eta: string }
+
+type CheckInRow = {
+  id: string
+  shelter_id: string
+  name: string
+  eta: string | null
+}
+
+function rowToCheckin(r: CheckInRow): CheckIn {
+  return { id: r.id, shelterId: r.shelter_id, name: r.name, eta: r.eta ?? '' }
+}
+
+/** All check-ins currently posted. Returns [] on any failure. */
+export async function fetchCheckins(): Promise<CheckIn[]> {
+  if (!hasSupabase) return []
+  try {
+    const { data, error } = await supabase
+      .from('board_checkins')
+      .select('*')
+      .order('created_at', { ascending: false })
+    if (error || !data) return []
+    return (data as CheckInRow[]).map(rowToCheckin)
+  } catch {
+    return []
+  }
+}
+
+/** Publish a shelter check-in so the shelter's device sees it. */
+export async function insertCheckin(
+  ci: CheckIn,
+  createdBy: string | null,
+): Promise<void> {
+  if (!hasSupabase) return
+  try {
+    await supabase.from('board_checkins').upsert({
+      id: ci.id,
+      shelter_id: ci.shelterId,
+      name: ci.name,
+      eta: ci.eta,
+      ...(createdBy ? { created_by: createdBy } : {}),
+    })
+  } catch {
+    /* best-effort */
+  }
+}
+
 let subscribed = false
 
 /**
@@ -116,13 +165,14 @@ let subscribed = false
 export function subscribeToBoard(
   onUpsert: (need: Need) => void,
   onRemove: (id: string) => void,
+  onCheckin: (ci: CheckIn) => void,
   onStatus?: (live: boolean) => void,
 ): void {
   if (!hasSupabase || subscribed) return
   subscribed = true
   try {
     supabase
-      .channel('board_needs')
+      .channel('board_live')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'board_needs' },
@@ -137,6 +187,11 @@ export function subscribeToBoard(
           if (next.status === 'open') onUpsert(rowToNeed(next))
           else onRemove(next.id)
         },
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'board_checkins' },
+        (payload) => onCheckin(rowToCheckin(payload.new as CheckInRow)),
       )
       .subscribe((status) => {
         onStatus?.(status === 'SUBSCRIBED')
