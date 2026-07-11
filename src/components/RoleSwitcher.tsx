@@ -1,10 +1,11 @@
-import { Boxes, HandHeart, Warehouse } from 'lucide-react'
+import { Boxes, HandHeart, Map as MapIcon, Warehouse } from 'lucide-react'
 import type { Role } from '@/lib/types'
 import { useStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
 
 const ROLES: { id: Role; label: string; icon: typeof Boxes }[] = [
-  { id: 'volunteer', label: 'Supplies Needed', icon: Boxes },
+  { id: 'volunteer', label: 'Supplies', icon: Boxes },
+  { id: 'map', label: 'Map', icon: MapIcon },
   { id: 'shelter', label: 'Shelter', icon: Warehouse },
   { id: 'requester', label: 'Need help', icon: HandHeart },
 ]
@@ -19,7 +20,7 @@ export function RoleSwitcher() {
   const setRole = useStore((s) => s.setRole)
 
   return (
-    <nav className="z-20 grid grid-cols-3 border-t bg-background pb-[env(safe-area-inset-bottom)]">
+    <nav className="z-20 grid grid-cols-4 border-t bg-background pb-[env(safe-area-inset-bottom)]">
       {ROLES.map(({ id, label, icon: Icon }) => (
         <button
           key={id}

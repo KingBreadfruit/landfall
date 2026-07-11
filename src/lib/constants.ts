@@ -35,3 +35,17 @@ export const URGENCY_LABELS = {
 // The demo arc runs on these two — the hero need and the hero driver.
 export const HERO_NEED_ID = 'need-portmore-hs'
 export const HERO_DRIVER_ID = 'driver-marcus'
+
+// Citizens' goods route to a shelter (their chosen drop-off), never to a
+// home address — safety first. For the demo, everything drops here.
+export const DROPOFF_SHELTER = {
+  name: 'Portmore HS Shelter',
+  address: 'Braeton Parkway, Portmore, St. Catherine',
+  lat: 17.9546,
+  lng: -76.8827,
+}
+
+/** Google Maps turn-by-turn link to a coordinate. */
+export function directionsUrl(lat: number, lng: number): string {
+  return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`
+}

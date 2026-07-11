@@ -4,6 +4,7 @@ import { AuthScreen } from '@/components/AuthScreen'
 import { SuppliesNeeded } from '@/components/SuppliesNeeded'
 import { NeedDetailSheet } from '@/components/NeedDetailSheet'
 import { PledgeFlow } from '@/components/PledgeFlow'
+import { ClaimFlow } from '@/components/ClaimFlow'
 import { MatchCard } from '@/components/MatchCard'
 import { TransferAnimation } from '@/components/TransferAnimation'
 import { DeliveryConfirm } from '@/components/DeliveryConfirm'
@@ -12,7 +13,9 @@ import { RequestHelp } from '@/components/RequestHelp'
 import { RoleSwitcher } from '@/components/RoleSwitcher'
 import { ShelterList } from '@/components/ShelterList'
 import { ShelterDetail } from '@/components/ShelterDetail'
+import { MapTab } from '@/components/MapTab'
 import { useAuth } from '@/lib/auth'
+import { hasSupabase } from '@/lib/supabase'
 import { useStore } from '@/lib/store'
 
 /**
@@ -23,6 +26,7 @@ export default function App() {
   const initAuth = useAuth((s) => s.init)
   const ready = useAuth((s) => s.ready)
   const session = useAuth((s) => s.session)
+  const guestMode = useAuth((s) => s.guestMode)
 
   const role = useStore((s) => s.role)
   const screen = useStore((s) => s.screen)
@@ -40,7 +44,9 @@ export default function App() {
     )
   }
 
-  if (!session) return <AuthScreen />
+  // With a backend configured, require a session (unless the user chose to
+  // continue as guest). Without a backend, fall straight through.
+  if (hasSupabase && !session && !guestMode) return <AuthScreen />
 
   return (
     <div className="flex h-full flex-col">
@@ -50,10 +56,17 @@ export default function App() {
         {role === 'volunteer' && (
           <div className="bg-background absolute inset-0">
             {screen === 'map' && <SuppliesNeeded />}
+            {screen === 'claim' && <ClaimFlow />}
             {screen === 'pledge' && <PledgeFlow />}
             {screen === 'match' && <MatchCard />}
             {screen === 'transfer' && <TransferAnimation />}
             {screen === 'delivery' && <DeliveryConfirm />}
+          </div>
+        )}
+
+        {role === 'map' && (
+          <div className="absolute inset-0">
+            <MapTab />
           </div>
         )}
 
@@ -77,7 +90,7 @@ export default function App() {
       </main>
 
       <RoleSwitcher />
-      {role === 'volunteer' && <NeedDetailSheet />}
+      {(role === 'volunteer' || role === 'map') && <NeedDetailSheet />}
     </div>
   )
 }
