@@ -1,4 +1,11 @@
-import { MapPin, UserRound, Users, Warehouse, Wrench } from 'lucide-react'
+import {
+  MapPin,
+  Navigation,
+  UserRound,
+  Users,
+  Warehouse,
+  Wrench,
+} from 'lucide-react'
 import {
   Sheet,
   SheetContent,
@@ -9,7 +16,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
-import { URGENCY_LABELS } from '@/lib/constants'
+import { URGENCY_LABELS, directionsUrl } from '@/lib/constants'
 import { KIND_LABEL, locationLabel, peopleLabel } from '@/lib/needs'
 import { useStore } from '@/lib/store'
 
@@ -23,10 +30,15 @@ export function NeedDetailSheet() {
   const screen = useStore((s) => s.screen)
   const need = useStore((s) => s.needs.find((n) => n.id === s.selectedNeedId))
   const selectNeed = useStore((s) => s.selectNeed)
-  const startPledge = useStore((s) => s.startPledge)
+  const startClaim = useStore((s) => s.startClaim)
   const takeUpGroundwork = useStore((s) => s.takeUpGroundwork)
 
   const isRepair = need?.kind === 'repair'
+  // Directions only for shelters (drop points) and repair sites — never a
+  // citizen's location.
+  const showDirections =
+    need != null && (need.kind === 'shelter' || need.kind === 'repair')
+  const canSupply = need != null && !isRepair && need.items.length > 0
 
   return (
     <Sheet
@@ -104,7 +116,18 @@ export function NeedDetailSheet() {
               </div>
             )}
 
-            <div className="px-4 pt-2">
+            <div className="flex flex-col gap-2 px-4 pt-2">
+              {showDirections && (
+                <Button asChild variant="outline" className="w-full">
+                  <a
+                    href={directionsUrl(need.lat, need.lng)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <Navigation /> Directions
+                  </a>
+                </Button>
+              )}
               {isRepair ? (
                 <Button
                   size="lg"
@@ -113,11 +136,15 @@ export function NeedDetailSheet() {
                 >
                   I can help
                 </Button>
-              ) : (
-                <Button size="lg" className="w-full" onClick={startPledge}>
-                  I can supply
+              ) : canSupply ? (
+                <Button
+                  size="lg"
+                  className="w-full"
+                  onClick={() => startClaim(need.id)}
+                >
+                  Claim this run
                 </Button>
-              )}
+              ) : null}
             </div>
           </>
         )}

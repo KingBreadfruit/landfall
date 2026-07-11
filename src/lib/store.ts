@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type {
   BadgeKind,
   Category,
+  Claim,
   Contributor,
   Delivery,
   Driver,
@@ -12,6 +13,7 @@ import type {
   Screen,
   Shelter,
 } from './types'
+import { DROPOFF_SHELTER } from './constants'
 import {
   DEMO_DELIVERY,
   SEED_DRIVERS,
@@ -24,7 +26,7 @@ import {
 import { GROUNDWORK_POINTS, supplyPoints, TOP_THRESHOLD } from './relief'
 import { clampQty, cleanText } from './sanitize'
 import { useAuth } from './auth'
-import { supabase } from './supabase'
+import { hasSupabase, supabase } from './supabase'
 
 /**
  * Compute the reward for a contribution against the signed-in user's
@@ -59,6 +61,11 @@ async function persistContribution(
   const auth = useAuth.getState()
   const profile = auth.profile
   if (!profile) return
+  // Mock mode: keep points in localStorage instead of Supabase.
+  if (!hasSupabase) {
+    auth.applyLocalPoints(points, newBadges)
+    return
+  }
   const badges = Array.from(new Set([...profile.badges, ...newBadges]))
   await supabase
     .from('profiles')
@@ -98,6 +105,8 @@ type LandfallState = {
   selectedNeedId: string | null
   /** Shelter role: which shelter's detail is open (its needId), or null. */
   selectedShelterId: string | null
+  /** The volunteer's in-progress claim (proof + verification trail). */
+  claim: Claim | null
   activeDelivery: Delivery | null
   /** Pitch toggle: shows the "Offline — pending sync" header badge. */
   offlineMode: boolean
@@ -117,6 +126,11 @@ type LandfallState = {
   setRole: (role: Role) => void
   selectNeed: (needId: string | null) => void
   selectShelter: (shelterId: string | null) => void
+  startClaim: (needId: string) => void
+  submitClaimPhoto: (photoUrl: string) => void
+  verifyClaim: () => void
+  cancelClaim: () => void
+  finishClaimDelivery: () => void
   logOccupant: (
     shelterId: string,
     person: { name: string; trn: string; dob: string },
@@ -154,6 +168,7 @@ export const useStore = create<LandfallState>((set, get) => ({
   shelters: SEED_SHELTERS,
   selectedNeedId: null,
   selectedShelterId: null,
+  claim: null,
   activeDelivery: null,
   offlineMode: false,
 
@@ -223,6 +238,64 @@ export const useStore = create<LandfallState>((set, get) => ({
         }
       }),
     }))
+  },
+
+  // --- Volunteer claim + accountability ---------------------------------
+  // Claim a run. The volunteer must photograph the items (submitClaimPhoto)
+  // and an admin must verify (verifyClaim) before the drop-off shelter is
+  // revealed — until then the ticket is NOT truly claimed.
+  startClaim: (needId) => {
+    const need = get().needs.find((n) => n.id === needId)
+    if (!need) return
+    const itemCount = need.items.reduce((sum, i) => sum + i.qtyNeeded, 0)
+    set({
+      selectedNeedId: null,
+      claim: {
+        needId,
+        volunteerName: useAuth.getState().profile?.name ?? 'You',
+        itemsPhoto: null,
+        status: 'photographing',
+        itemCount,
+        shelterName: DROPOFF_SHELTER.name,
+        shelterAddress: DROPOFF_SHELTER.address,
+        shelterLat: DROPOFF_SHELTER.lat,
+        shelterLng: DROPOFF_SHELTER.lng,
+      },
+      screen: 'claim',
+    })
+  },
+
+  submitClaimPhoto: (photoUrl) =>
+    set((s) =>
+      s.claim
+        ? { claim: { ...s.claim, itemsPhoto: photoUrl, status: 'pending' } }
+        : {},
+    ),
+
+  verifyClaim: () =>
+    set((s) =>
+      s.claim ? { claim: { ...s.claim, status: 'verified' } } : {},
+    ),
+
+  cancelClaim: () => set({ claim: null, screen: 'map' }),
+
+  // Verified → dropped off: close the ticket (remove from board), carry the
+  // proof photo into the reveal, and score the supply drop.
+  finishClaimDelivery: () => {
+    const { claim, needs, activeDelivery } = get()
+    if (!claim) return
+    set({
+      needs: needs.filter((n) => n.id !== claim.needId),
+      pendingItemsMoved: claim.itemCount,
+      pendingPlace: claim.shelterName,
+      activeDelivery: {
+        ...(activeDelivery ?? DEMO_DELIVERY),
+        photoUrl: claim.itemsPhoto ?? DEMO_DELIVERY.photoUrl,
+        status: 'enroute',
+      },
+      claim: null,
+      screen: 'transfer',
+    })
   },
 
   startPledge: () => set({ screen: 'pledge' }),
@@ -401,6 +474,7 @@ export const useStore = create<LandfallState>((set, get) => ({
       shelters: SEED_SHELTERS,
       selectedNeedId: null,
       selectedShelterId: null,
+      claim: null,
       activeDelivery: null,
       you: SEED_YOU,
       leaderboard: SEED_LEADERBOARD,

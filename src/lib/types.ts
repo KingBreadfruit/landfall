@@ -110,11 +110,30 @@ export type Delivery = {
 /** App screens — Zustand-driven, no router needed for a demo. */
 export type Screen =
   | 'map'
+  | 'claim'
   | 'pledge'
   | 'match'
   | 'transfer'
   | 'delivery'
   | 'post-need'
+
+/**
+ * A claimed supply run with its accountability trail: the volunteer must
+ * photograph the items to claim it; until an admin verifies that proof the
+ * ticket is not truly claimed. Once verified, the drop-off shelter is
+ * revealed.
+ */
+export type Claim = {
+  needId: string
+  volunteerName: string
+  itemsPhoto: string | null
+  status: 'photographing' | 'pending' | 'verified'
+  itemCount: number
+  shelterName: string
+  shelterAddress: string
+  shelterLat: number
+  shelterLng: number
+}
 
 // --- Contribution / recognition -------------------------------------------
 
@@ -147,4 +166,4 @@ export type Reward = {
  * volunteer (see needs, pledge, run supplies), shelter (post + track
  * needs), requester (a person asking for help).
  */
-export type Role = 'volunteer' | 'shelter' | 'requester'
+export type Role = 'volunteer' | 'shelter' | 'requester' | 'map'

@@ -26,6 +26,7 @@ const ROLES: { id: Role; label: string }[] = [
 export function AuthScreen() {
   const signUp = useAuth((s) => s.signUp)
   const signIn = useAuth((s) => s.signIn)
+  const continueAsGuest = useAuth((s) => s.continueAsGuest)
 
   const [mode, setMode] = useState<'signup' | 'login'>('signup')
   const [name, setName] = useState('')
@@ -152,6 +153,14 @@ export function AuthScreen() {
         <p className="text-muted-foreground text-center text-xs">
           No email confirmation — you're straight in.
         </p>
+
+        <button
+          type="button"
+          onClick={continueAsGuest}
+          className="text-muted-foreground hover:text-foreground mt-1 cursor-pointer text-center text-xs underline"
+        >
+          Having trouble? Continue as guest
+        </button>
       </div>
     </div>
   )
