@@ -30,10 +30,17 @@ export default function App() {
   const role = useStore((s) => s.role)
   const screen = useStore((s) => s.screen)
   const selectedShelterId = useStore((s) => s.selectedShelterId)
+  const loadBoard = useStore((s) => s.loadBoard)
 
   useEffect(() => {
     initAuth()
   }, [initAuth])
+
+  // Once we're past the auth gate, pull the shared board and go live so
+  // requests posted on any device show up here.
+  useEffect(() => {
+    if (ready && (session || guestMode)) void loadBoard()
+  }, [ready, session, guestMode, loadBoard])
 
   if (!ready) {
     return (

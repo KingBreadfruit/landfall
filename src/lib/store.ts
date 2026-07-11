@@ -29,6 +29,26 @@ import { GROUNDWORK_POINTS, supplyPoints, TOP_THRESHOLD } from './relief'
 import { clampQty, cleanText } from './sanitize'
 import { useAuth } from './auth'
 import { hasSupabase, supabase } from './supabase'
+import {
+  fetchOpenNeeds,
+  markRemoteNeed,
+  subscribeToBoard,
+  upsertRemoteNeed,
+} from './board'
+
+/** Add or replace a need in a list, keyed by id (newest first when new). */
+function upsertNeed(list: Need[], need: Need): Need[] {
+  const i = list.findIndex((n) => n.id === need.id)
+  if (i === -1) return [need, ...list]
+  const copy = list.slice()
+  copy[i] = need
+  return copy
+}
+
+/** The signed-in user's id, or null (guest / no session). */
+function currentUserId(): string | null {
+  return useAuth.getState().session?.user.id ?? null
+}
 
 /**
  * Compute the reward for a contribution against the signed-in user's
@@ -161,6 +181,8 @@ type LandfallState = {
   resetDemo: () => void
   toggleOfflineMode: () => void
   setOfflineMode: (offline: boolean) => void
+  /** Pull the shared board and subscribe to live changes (cross-device). */
+  loadBoard: () => Promise<void>
 }
 
 export const useStore = create<LandfallState>()(
@@ -290,6 +312,14 @@ export const useStore = create<LandfallState>()(
       selectedNeedId: null,
       screen: 'run',
     })
+    // Reflect the claim on the shared board: a shelter keeps its venue
+    // (request cleared), a person/repair leaves the open board entirely.
+    if (need.kind === 'shelter') {
+      const updated = get().needs.find((n) => n.id === needId)
+      if (updated) void upsertRemoteNeed(updated, currentUserId())
+    } else {
+      void markRemoteNeed(needId, 'matched')
+    }
   },
 
   openMyRuns: () => set({ screen: 'runs', activeRunId: null }),
@@ -367,6 +397,7 @@ export const useStore = create<LandfallState>()(
       selectedNeedId: null,
       screen: 'delivery',
     })
+    void markRemoteNeed(needId, 'matched')
     void persistContribution('groundwork', reward.points, reward.newBadges)
   },
 
@@ -396,6 +427,7 @@ export const useStore = create<LandfallState>()(
       status: 'open',
     }
     set((s) => ({ needs: [need, ...s.needs] }))
+    void upsertRemoteNeed(need, currentUserId())
   },
 
   // Citizen reports damage → a new repair on the board (Groundwork).
@@ -416,6 +448,7 @@ export const useStore = create<LandfallState>()(
       photoUrl,
     }
     set((s) => ({ needs: [need, ...s.needs] }))
+    void upsertRemoteNeed(need, currentUserId())
   },
 
   // Shelter requests goods — same catalog as a citizen, but it populates
@@ -436,6 +469,8 @@ export const useStore = create<LandfallState>()(
         n.id === HERO_NEED_ID ? { ...n, items, urgency: 'high' } : n,
       ),
     }))
+    const hero = get().needs.find((n) => n.id === HERO_NEED_ID)
+    if (hero) void upsertRemoteNeed(hero, currentUserId())
   },
 
   resetDemo: () =>
@@ -453,6 +488,23 @@ export const useStore = create<LandfallState>()(
   toggleOfflineMode: () => set((s) => ({ offlineMode: !s.offlineMode })),
 
   setOfflineMode: (offline) => set({ offlineMode: offline }),
+
+  // Merge the shared board into the local one and keep it live. Remote
+  // needs are upserted by id; a need marked off-board elsewhere is removed
+  // here too. Local seed needs are left untouched.
+  loadBoard: async () => {
+    if (!hasSupabase) return
+    const remote = await fetchOpenNeeds()
+    if (remote.length) {
+      set((s) => ({
+        needs: remote.reduce((acc, n) => upsertNeed(acc, n), s.needs),
+      }))
+    }
+    subscribeToBoard(
+      (need) => set((s) => ({ needs: upsertNeed(s.needs, need) })),
+      (id) => set((s) => ({ needs: s.needs.filter((n) => n.id !== id) })),
+    )
+  },
     }),
     {
       // Keep user-added data across refreshes (same device). Points live in
