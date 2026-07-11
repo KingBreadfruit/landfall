@@ -44,19 +44,34 @@ export function PostNeedForm() {
         <CardContent className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <Label htmlFor="community">Community or shelter</Label>
-            <Input id="community" placeholder="e.g. Portmore HS Shelter" />
+            <Input
+              id="community"
+              maxLength={80}
+              placeholder="e.g. Portmore HS Shelter"
+            />
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="parish">Parish</Label>
-            <Input id="parish" placeholder="e.g. St. Catherine" />
+            <Input id="parish" maxLength={40} placeholder="e.g. St. Catherine" />
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="items">What is needed?</Label>
-            <Input id="items" placeholder="e.g. 200 cases water, 50 tarps" />
+            <Input
+              id="items"
+              maxLength={120}
+              placeholder="e.g. 200 cases water, 50 tarps"
+            />
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="people">People affected</Label>
-            <Input id="people" type="number" placeholder="340" />
+            <Input
+              id="people"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={100000}
+              placeholder="340"
+            />
           </div>
           <Button size="lg" onClick={() => setScreen('map')}>
             Post need

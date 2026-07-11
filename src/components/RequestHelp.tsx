@@ -61,22 +61,34 @@ export function RequestHelp() {
         <CardContent className="flex flex-col gap-4">
           <div className="flex flex-col gap-2">
             <Label htmlFor="req-name">Your name</Label>
-            <Input id="req-name" placeholder="e.g. Marlene B." />
+            <Input id="req-name" maxLength={80} placeholder="e.g. Marlene B." />
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="req-location">Where are you?</Label>
             <Input
               id="req-location"
+              maxLength={120}
               placeholder="e.g. Gregory Park, Portmore"
             />
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="req-items">What do you need?</Label>
-            <Input id="req-items" placeholder="e.g. water, baby formula" />
+            <Input
+              id="req-items"
+              maxLength={120}
+              placeholder="e.g. water, baby formula"
+            />
           </div>
           <div className="flex flex-col gap-2">
             <Label htmlFor="req-people">How many people?</Label>
-            <Input id="req-people" type="number" placeholder="4" />
+            <Input
+              id="req-people"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={100000}
+              placeholder="4"
+            />
           </div>
           <Button size="lg" onClick={() => setSubmitted(true)}>
             Send request

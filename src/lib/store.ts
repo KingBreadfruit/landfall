@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { Delivery, Driver, Need, Pledge, Role, Screen } from './types'
 import { DEMO_DELIVERY, SEED_DRIVERS, SEED_NEEDS, SEED_PLEDGES } from './seed'
+import { clampQty, cleanText } from './sanitize'
 
 // ---------------------------------------------------------------------------
 // Demo flow state. This drives the whole app — no router, no backend.
@@ -34,6 +35,7 @@ type LandfallState = {
   completeDemoDelivery: () => void
   resetDemo: () => void
   toggleOfflineMode: () => void
+  setOfflineMode: (offline: boolean) => void
 }
 
 export const useStore = create<LandfallState>((set, get) => ({
@@ -57,6 +59,8 @@ export const useStore = create<LandfallState>((set, get) => ({
   startPledge: () => set({ screen: 'pledge' }),
 
   // Records a pledge against the selected need and moves its progress bars.
+  // All inputs are sanitized here — garbage quantities clamp to safe ints,
+  // blank/whitespace donor names fall back — so nothing upstream can crash it.
   confirmPledge: (donorName, quantities) => {
     const { selectedNeedId, needs, pledges } = get()
     if (!selectedNeedId) return
@@ -64,9 +68,11 @@ export const useStore = create<LandfallState>((set, get) => ({
     const need = needs.find((n) => n.id === selectedNeedId)
     if (!need) return
 
+    const qtyFor = (name: string) => clampQty(quantities[name])
+
     const pledgedItems = need.items
-      .filter((item) => (quantities[item.name] ?? 0) > 0)
-      .map((item) => ({ ...item, qtyPledged: quantities[item.name] }))
+      .filter((item) => qtyFor(item.name) > 0)
+      .map((item) => ({ ...item, qtyPledged: qtyFor(item.name) }))
 
     const updatedNeeds = needs.map((n) =>
       n.id !== selectedNeedId
@@ -77,7 +83,7 @@ export const useStore = create<LandfallState>((set, get) => ({
               ...item,
               qtyPledged: Math.min(
                 item.qtyNeeded,
-                item.qtyPledged + (quantities[item.name] ?? 0),
+                item.qtyPledged + qtyFor(item.name),
               ),
             })),
           },
@@ -90,7 +96,7 @@ export const useStore = create<LandfallState>((set, get) => ({
         {
           id: `pledge-${Date.now()}`,
           needId: selectedNeedId,
-          donorName,
+          donorName: cleanText(donorName) || 'Anonymous donor',
           items: pledgedItems,
         },
       ],
@@ -129,4 +135,6 @@ export const useStore = create<LandfallState>((set, get) => ({
     }),
 
   toggleOfflineMode: () => set((s) => ({ offlineMode: !s.offlineMode })),
+
+  setOfflineMode: (offline) => set({ offlineMode: offline }),
 }))

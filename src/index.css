@@ -101,9 +101,13 @@
   }
 }
 
-/* Leaflet z-index sits below our sheets/overlays */
+/* Leaflet z-index sits below our sheets/overlays.
+   The background is the graceful-degradation path: if OSM tiles can't
+   load (offline, blocked network), pins and UI float on this calm sea
+   tone instead of a broken grey grid. */
 .leaflet-container {
   z-index: 0;
+  background: #c8d8dc;
 }
 
 /* Pulse ring for critical need pins */

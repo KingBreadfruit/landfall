@@ -27,7 +27,14 @@ export function MapView() {
       minZoom={8}
       className="h-full w-full"
     >
-      <TileLayer url={TILE_URL} attribution={TILE_ATTRIBUTION} />
+      {/* errorTileUrl: failed tiles render as a transparent pixel so the
+          container's sea-tone background shows through — never broken
+          image squares. */}
+      <TileLayer
+        url={TILE_URL}
+        attribution={TILE_ATTRIBUTION}
+        errorTileUrl="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+      />
       {needs.map((need) => (
         <NeedPin key={need.id} need={need} />
       ))}
