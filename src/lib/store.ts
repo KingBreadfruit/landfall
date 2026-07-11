@@ -2,7 +2,6 @@ import { create } from 'zustand'
 import type {
   BadgeKind,
   Category,
-  Claim,
   Contributor,
   Delivery,
   Driver,
@@ -10,10 +9,11 @@ import type {
   Pledge,
   Reward,
   Role,
+  Run,
   Screen,
   Shelter,
 } from './types'
-import { DROPOFF_SHELTER } from './constants'
+import { DROPOFF_SHELTER, HERO_NEED_ID } from './constants'
 import {
   DEMO_DELIVERY,
   SEED_DRIVERS,
@@ -61,8 +61,8 @@ async function persistContribution(
   const auth = useAuth.getState()
   const profile = auth.profile
   if (!profile) return
-  // Mock mode: keep points in localStorage instead of Supabase.
-  if (!hasSupabase) {
+  // Guest / no-backend: keep points in localStorage instead of Supabase.
+  if (!hasSupabase || auth.guestMode) {
     auth.applyLocalPoints(points, newBadges)
     return
   }
@@ -105,8 +105,10 @@ type LandfallState = {
   selectedNeedId: string | null
   /** Shelter role: which shelter's detail is open (its needId), or null. */
   selectedShelterId: string | null
-  /** The volunteer's in-progress claim (proof + verification trail). */
-  claim: Claim | null
+  /** Runs the volunteer has claimed (accountability trail per run). */
+  runs: Run[]
+  /** The run whose detail is open, or null for the My-runs list. */
+  activeRunId: string | null
   activeDelivery: Delivery | null
   /** Pitch toggle: shows the "Offline — pending sync" header badge. */
   offlineMode: boolean
@@ -127,18 +129,17 @@ type LandfallState = {
   selectNeed: (needId: string | null) => void
   selectShelter: (shelterId: string | null) => void
   startClaim: (needId: string) => void
-  submitClaimPhoto: (photoUrl: string) => void
-  verifyClaim: () => void
-  cancelClaim: () => void
-  finishClaimDelivery: () => void
+  openMyRuns: () => void
+  openRun: (runId: string) => void
+  backToRuns: () => void
+  uploadRunPhoto: (photoUrl: string) => void
+  verifyActiveRun: () => void
+  completeActiveRun: () => void
   logOccupant: (
     shelterId: string,
     person: { name: string; trn: string; dob: string },
   ) => void
   checkInGuest: (shelterId: string, guestId: string) => void
-  startPledge: () => void
-  confirmPledge: (donorName: string, quantities: Record<string, number>) => void
-  startTransfer: () => void
   finishSupplyDelivery: () => void
   takeUpGroundwork: (needId: string) => void
   submitSupplyRequest: (payload: {
@@ -152,8 +153,9 @@ type LandfallState = {
     area: string
     photoUrl?: string
   }) => void
-  startDemoDelivery: () => void
-  completeDemoDelivery: () => void
+  submitShelterRequest: (
+    selections: Record<string, { qty: number; unit: string }>,
+  ) => void
   resetDemo: () => void
   toggleOfflineMode: () => void
   setOfflineMode: (offline: boolean) => void
@@ -168,7 +170,8 @@ export const useStore = create<LandfallState>((set, get) => ({
   shelters: SEED_SHELTERS,
   selectedNeedId: null,
   selectedShelterId: null,
-  claim: null,
+  runs: [],
+  activeRunId: null,
   activeDelivery: null,
   offlineMode: false,
 
@@ -240,125 +243,83 @@ export const useStore = create<LandfallState>((set, get) => ({
     }))
   },
 
-  // --- Volunteer claim + accountability ---------------------------------
-  // Claim a run. The volunteer must photograph the items (submitClaimPhoto)
-  // and an admin must verify (verifyClaim) before the drop-off shelter is
-  // revealed — until then the ticket is NOT truly claimed.
+  // --- Volunteer runs (claim → proof → verify → QR → deliver) ----------
+  // Claiming moves the need off the open board and creates a run the
+  // volunteer must photograph; an admin verifies the proof before the QR
+  // and drop-off shelter are revealed.
   startClaim: (needId) => {
-    const need = get().needs.find((n) => n.id === needId)
+    const { needs, runs } = get()
+    const need = needs.find((n) => n.id === needId)
     if (!need) return
-    const itemCount = need.items.reduce((sum, i) => sum + i.qtyNeeded, 0)
+    const items = need.items.map((i) => ({
+      name: i.name,
+      unit: i.unit,
+      qty: i.qtyNeeded,
+    }))
+    const run: Run = {
+      id: `run-${Date.now()}`,
+      needId,
+      requesterName: need.community,
+      area: need.area ? `${need.area}, ${need.parish}` : need.parish,
+      items,
+      itemCount: items.reduce((s, i) => s + i.qty, 0),
+      status: 'to_photograph',
+      itemsPhoto: null,
+      qrToken: Math.random().toString(36).slice(2, 8).toUpperCase(),
+      shelterName: DROPOFF_SHELTER.name,
+      shelterAddress: DROPOFF_SHELTER.address,
+      shelterLat: DROPOFF_SHELTER.lat,
+      shelterLng: DROPOFF_SHELTER.lng,
+    }
     set({
+      needs: needs.filter((n) => n.id !== needId),
+      runs: [run, ...runs],
+      activeRunId: run.id,
       selectedNeedId: null,
-      claim: {
-        needId,
-        volunteerName: useAuth.getState().profile?.name ?? 'You',
-        itemsPhoto: null,
-        status: 'photographing',
-        itemCount,
-        shelterName: DROPOFF_SHELTER.name,
-        shelterAddress: DROPOFF_SHELTER.address,
-        shelterLat: DROPOFF_SHELTER.lat,
-        shelterLng: DROPOFF_SHELTER.lng,
-      },
-      screen: 'claim',
+      screen: 'run',
     })
   },
 
-  submitClaimPhoto: (photoUrl) =>
-    set((s) =>
-      s.claim
-        ? { claim: { ...s.claim, itemsPhoto: photoUrl, status: 'pending' } }
-        : {},
-    ),
+  openMyRuns: () => set({ screen: 'runs', activeRunId: null }),
+  openRun: (runId) => set({ screen: 'run', activeRunId: runId }),
+  backToRuns: () => set({ screen: 'runs', activeRunId: null }),
 
-  verifyClaim: () =>
-    set((s) =>
-      s.claim ? { claim: { ...s.claim, status: 'verified' } } : {},
-    ),
+  uploadRunPhoto: (photoUrl) =>
+    set((s) => ({
+      runs: s.runs.map((r) =>
+        r.id === s.activeRunId
+          ? { ...r, itemsPhoto: photoUrl, status: 'pending' }
+          : r,
+      ),
+    })),
 
-  cancelClaim: () => set({ claim: null, screen: 'map' }),
+  verifyActiveRun: () =>
+    set((s) => ({
+      runs: s.runs.map((r) =>
+        r.id === s.activeRunId ? { ...r, status: 'verified' } : r,
+      ),
+    })),
 
-  // Verified → dropped off: close the ticket (remove from board), carry the
-  // proof photo into the reveal, and score the supply drop.
-  finishClaimDelivery: () => {
-    const { claim, needs, activeDelivery } = get()
-    if (!claim) return
+  // Delivered: mark the run done, carry the proof photo into the reveal,
+  // and score the supply drop (points persist).
+  completeActiveRun: () => {
+    const { runs, activeRunId, activeDelivery } = get()
+    const run = runs.find((r) => r.id === activeRunId)
+    if (!run) return
     set({
-      needs: needs.filter((n) => n.id !== claim.needId),
-      pendingItemsMoved: claim.itemCount,
-      pendingPlace: claim.shelterName,
+      runs: runs.map((r) =>
+        r.id === activeRunId ? { ...r, status: 'delivered' } : r,
+      ),
+      pendingItemsMoved: run.itemCount,
+      pendingPlace: run.shelterName,
       activeDelivery: {
         ...(activeDelivery ?? DEMO_DELIVERY),
-        photoUrl: claim.itemsPhoto ?? DEMO_DELIVERY.photoUrl,
-        status: 'enroute',
-      },
-      claim: null,
-      screen: 'transfer',
-    })
-  },
-
-  startPledge: () => set({ screen: 'pledge' }),
-
-  // Records a pledge against the selected need and moves its progress bars.
-  // All inputs are sanitized here — garbage quantities clamp to safe ints,
-  // blank/whitespace donor names fall back — so nothing upstream can crash it.
-  confirmPledge: (donorName, quantities) => {
-    const { selectedNeedId, needs, pledges } = get()
-    if (!selectedNeedId) return
-
-    const need = needs.find((n) => n.id === selectedNeedId)
-    if (!need) return
-
-    const qtyFor = (name: string) => clampQty(quantities[name])
-
-    const pledgedItems = need.items
-      .filter((item) => qtyFor(item.name) > 0)
-      .map((item) => ({ ...item, qtyPledged: qtyFor(item.name) }))
-
-    const updatedNeeds = needs.map((n) =>
-      n.id !== selectedNeedId
-        ? n
-        : {
-            ...n,
-            items: n.items.map((item) => ({
-              ...item,
-              qtyPledged: Math.min(
-                item.qtyNeeded,
-                item.qtyPledged + qtyFor(item.name),
-              ),
-            })),
-          },
-    )
-
-    const itemsMoved = pledgedItems.reduce((sum, i) => sum + i.qtyPledged, 0)
-
-    set({
-      needs: updatedNeeds,
-      pledges: [
-        ...pledges,
-        {
-          id: `pledge-${Date.now()}`,
-          needId: selectedNeedId,
-          donorName: cleanText(donorName) || 'Anonymous donor',
-          items: pledgedItems,
-        },
-      ],
-      pendingItemsMoved: itemsMoved,
-      pendingPlace: need.community,
-      screen: 'match',
-    })
-  },
-
-  // Match → play the transfer animation (fills to the pledged item count).
-  startTransfer: () =>
-    set((s) => ({
-      activeDelivery: {
-        ...(s.activeDelivery ?? DEMO_DELIVERY),
+        photoUrl: run.itemsPhoto ?? DEMO_DELIVERY.photoUrl,
         status: 'enroute',
       },
       screen: 'transfer',
-    })),
+    })
+  },
 
   // Transfer finished → land the delivery and score the supply drop.
   finishSupplyDelivery: () => {
@@ -445,39 +406,33 @@ export const useStore = create<LandfallState>((set, get) => ({
     set((s) => ({ needs: [need, ...s.needs] }))
   },
 
-  // Kicks off the scripted match → the demo delivery on the hero need.
-  startDemoDelivery: () => {
-    set({
-      activeDelivery: { ...DEMO_DELIVERY, status: 'enroute' },
-      screen: 'match',
-    })
-  },
-
-  completeDemoDelivery: () => {
-    const delivery = get().activeDelivery ?? DEMO_DELIVERY
-    set({
-      activeDelivery: {
-        ...delivery,
-        status: 'delivered',
-        timeline: delivery.timeline.map((step) => ({ ...step, done: true })),
-      },
-      screen: 'delivery',
-    })
+  // Shelter requests goods — same catalog as a citizen, but it populates
+  // the shelter's own request (distinct source: kind 'shelter'), which then
+  // shows on the volunteer board.
+  submitShelterRequest: (selections) => {
+    const items = Object.entries(selections)
+      .filter(([, v]) => v.qty > 0)
+      .map(([itemName, v]) => ({
+        name: itemName,
+        unit: v.unit,
+        qtyNeeded: clampQty(v.qty),
+        qtyPledged: 0,
+      }))
+    if (items.length === 0) return
+    set((s) => ({
+      needs: s.needs.map((n) =>
+        n.id === HERO_NEED_ID ? { ...n, items, urgency: 'high' } : n,
+      ),
+    }))
   },
 
   resetDemo: () =>
     set({
       screen: 'map',
-      needs: SEED_NEEDS,
-      drivers: SEED_DRIVERS,
-      pledges: SEED_PLEDGES,
-      shelters: SEED_SHELTERS,
       selectedNeedId: null,
       selectedShelterId: null,
-      claim: null,
+      activeRunId: null,
       activeDelivery: null,
-      you: SEED_YOU,
-      leaderboard: SEED_LEADERBOARD,
       pendingItemsMoved: 0,
       pendingPlace: '',
       lastReward: null,
