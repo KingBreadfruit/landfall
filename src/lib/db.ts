@@ -1,4 +1,4 @@
-// Row shapes for the Supabase tables (see CLAUDE.md v2 spec). These mirror
+// Row shapes for the Supabase tables (see NOTES.md v2 spec). These mirror
 // the columns exactly so queries stay honest.
 
 export type Urgency = 'critical' | 'high' | 'normal'
