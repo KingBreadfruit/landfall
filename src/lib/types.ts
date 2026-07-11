@@ -11,8 +11,12 @@ export type Need = {
   id: string
   /** Shelter name, or the requester's name for a person in need. */
   community: string
-  /** Who posted it: an official shelter, or a person affected. */
-  kind: 'shelter' | 'person'
+  /**
+   * Who/what posted it: an official shelter, a person affected, or a
+   * `repair` — a damage report (blocked road, torn roof) that needs
+   * hands, not supplies.
+   */
+  kind: 'shelter' | 'person' | 'repair'
   lat: number
   lng: number
   parish: string
@@ -23,6 +27,9 @@ export type Need = {
   /** Shelter: people sheltering. Person: household size. */
   peopleAffected: number
   status: 'open' | 'matched' | 'fulfilled'
+  /** repair only: what kind of damage, and a photo of it. */
+  damageType?: string
+  photoUrl?: string
 }
 
 /** A person logged as staying at a shelter (government-official view). */
@@ -101,7 +108,39 @@ export type Delivery = {
 }
 
 /** App screens — Zustand-driven, no router needed for a demo. */
-export type Screen = 'map' | 'pledge' | 'match' | 'delivery' | 'post-need'
+export type Screen =
+  | 'map'
+  | 'pledge'
+  | 'match'
+  | 'transfer'
+  | 'delivery'
+  | 'post-need'
+
+// --- Contribution / recognition -------------------------------------------
+
+/** How a contribution was made — drives how points are scored. */
+export type Category = 'supply' | 'groundwork'
+
+export type BadgeKind = 'verified' | 'top'
+
+export type Contributor = {
+  id: string
+  name: string
+  points: number
+  contributions: number
+  badges: BadgeKind[]
+}
+
+/** Result of a completed contribution, shown on the reward beat. */
+export type Reward = {
+  category: Category
+  points: number
+  itemsMoved: number
+  totalPoints: number
+  newBadges: BadgeKind[]
+  /** The place that was helped, for the reveal copy. */
+  place: string
+}
 
 /**
  * The three perspectives in the network, switchable from the bottom nav:

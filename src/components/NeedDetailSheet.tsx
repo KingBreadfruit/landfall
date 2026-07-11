@@ -1,4 +1,4 @@
-import { MapPin, UserRound, Users, Warehouse } from 'lucide-react'
+import { MapPin, UserRound, Users, Warehouse, Wrench } from 'lucide-react'
 import {
   Sheet,
   SheetContent,
@@ -14,17 +14,19 @@ import { KIND_LABEL, locationLabel, peopleLabel } from '@/lib/needs'
 import { useStore } from '@/lib/store'
 
 /**
- * Bottom sheet shown when a need pin is tapped:
- * items + progress, urgency, people affected, and the "I can supply" CTA.
+ * Bottom sheet shown when a need is tapped. Shelters/people show items +
+ * progress and "I can supply". Repairs show the damage photo and "I can
+ * help" (Groundwork).
  */
 export function NeedDetailSheet() {
   const selectedNeedId = useStore((s) => s.selectedNeedId)
   const screen = useStore((s) => s.screen)
-  const need = useStore((s) =>
-    s.needs.find((n) => n.id === s.selectedNeedId),
-  )
+  const need = useStore((s) => s.needs.find((n) => n.id === s.selectedNeedId))
   const selectNeed = useStore((s) => s.selectNeed)
   const startPledge = useStore((s) => s.startPledge)
+  const takeUpGroundwork = useStore((s) => s.takeUpGroundwork)
+
+  const isRepair = need?.kind === 'repair'
 
   return (
     <Sheet
@@ -44,6 +46,8 @@ export function NeedDetailSheet() {
                 <span className="text-muted-foreground flex items-center gap-1 text-xs">
                   {need.kind === 'shelter' ? (
                     <Warehouse className="size-3" />
+                  ) : isRepair ? (
+                    <Wrench className="size-3" />
                   ) : (
                     <UserRound className="size-3" />
                   )}
@@ -54,36 +58,66 @@ export function NeedDetailSheet() {
                   {locationLabel(need)}
                 </span>
               </div>
-              <SheetTitle className="text-xl">{need.community}</SheetTitle>
+              <SheetTitle className="text-xl">
+                {isRepair ? need.damageType : need.community}
+              </SheetTitle>
               <SheetDescription className="flex items-center gap-1.5">
-                <Users className="size-4" />
-                {peopleLabel(need)}
+                {isRepair ? (
+                  'Volunteers with tools or a vehicle can take this on.'
+                ) : (
+                  <>
+                    <Users className="size-4" />
+                    {peopleLabel(need)}
+                  </>
+                )}
               </SheetDescription>
             </SheetHeader>
 
-            <div className="flex flex-col gap-4 px-4">
-              {need.items.map((item) => {
-                const pct = Math.round(
-                  (item.qtyPledged / item.qtyNeeded) * 100,
-                )
-                return (
-                  <div key={item.name} className="flex flex-col gap-1.5">
-                    <div className="flex items-baseline justify-between text-sm">
-                      <span className="font-medium">{item.name}</span>
-                      <span className="text-muted-foreground">
-                        {item.qtyPledged} / {item.qtyNeeded} {item.unit}
-                      </span>
+            {isRepair ? (
+              <div className="px-4">
+                {need.photoUrl && (
+                  <img
+                    src={need.photoUrl}
+                    alt="Reported damage"
+                    className="aspect-video w-full rounded-lg object-cover"
+                  />
+                )}
+              </div>
+            ) : (
+              <div className="flex flex-col gap-4 px-4">
+                {need.items.map((item) => {
+                  const pct = Math.round(
+                    (item.qtyPledged / item.qtyNeeded) * 100,
+                  )
+                  return (
+                    <div key={item.name} className="flex flex-col gap-1.5">
+                      <div className="flex items-baseline justify-between text-sm">
+                        <span className="font-medium">{item.name}</span>
+                        <span className="text-muted-foreground">
+                          {item.qtyPledged} / {item.qtyNeeded} {item.unit}
+                        </span>
+                      </div>
+                      <Progress value={pct} />
                     </div>
-                    <Progress value={pct} />
-                  </div>
-                )
-              })}
-            </div>
+                  )
+                })}
+              </div>
+            )}
 
             <div className="px-4 pt-2">
-              <Button size="lg" className="w-full" onClick={startPledge}>
-                I can supply
-              </Button>
+              {isRepair ? (
+                <Button
+                  size="lg"
+                  className="w-full"
+                  onClick={() => takeUpGroundwork(need.id)}
+                >
+                  I can help
+                </Button>
+              ) : (
+                <Button size="lg" className="w-full" onClick={startPledge}>
+                  I can supply
+                </Button>
+              )}
             </div>
           </>
         )}

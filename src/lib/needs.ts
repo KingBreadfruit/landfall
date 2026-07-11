@@ -36,4 +36,5 @@ export function locationLabel(need: Need): string {
 export const KIND_LABEL: Record<Need['kind'], string> = {
   shelter: 'Shelter',
   person: 'Person in need',
+  repair: 'Damage report',
 }
