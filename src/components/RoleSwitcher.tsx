@@ -1,10 +1,10 @@
-import { HandHeart, Truck, Warehouse } from 'lucide-react'
+import { Boxes, HandHeart, Warehouse } from 'lucide-react'
 import type { Role } from '@/lib/types'
 import { useStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
 
-const ROLES: { id: Role; label: string; icon: typeof Truck }[] = [
-  { id: 'volunteer', label: 'Supply runs', icon: Truck },
+const ROLES: { id: Role; label: string; icon: typeof Boxes }[] = [
+  { id: 'volunteer', label: 'Supplies Needed', icon: Boxes },
   { id: 'shelter', label: 'Shelter', icon: Warehouse },
   { id: 'requester', label: 'Need help', icon: HandHeart },
 ]
@@ -27,14 +27,14 @@ export function RoleSwitcher() {
           onClick={() => setRole(id)}
           aria-current={role === id ? 'page' : undefined}
           className={cn(
-            'flex min-h-14 cursor-pointer flex-col items-center justify-center gap-0.5 py-1.5 text-xs transition-colors',
+            'flex min-h-14 cursor-pointer flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-xs transition-colors',
             role === id
               ? 'text-urgency-critical font-semibold'
               : 'text-muted-foreground',
           )}
         >
-          <Icon className="size-5" />
-          {label}
+          <Icon className="size-5 shrink-0" />
+          <span className="text-center leading-tight">{label}</span>
         </button>
       ))}
     </nav>

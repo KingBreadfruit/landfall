@@ -1,5 +1,5 @@
 import { Header } from '@/components/Header'
-import { MapView } from '@/components/MapView'
+import { SuppliesNeeded } from '@/components/SuppliesNeeded'
 import { NeedDetailSheet } from '@/components/NeedDetailSheet'
 import { PledgeFlow } from '@/components/PledgeFlow'
 import { MatchCard } from '@/components/MatchCard'
@@ -9,13 +9,11 @@ import { RequestHelp } from '@/components/RequestHelp'
 import { RoleSwitcher } from '@/components/RoleSwitcher'
 import { ShelterDashboard } from '@/components/ShelterDashboard'
 import { useStore } from '@/lib/store'
-import { cn } from '@/lib/utils'
 
 /**
  * Shell + "router": current role (bottom nav) and screen live in the
- * Zustand store. The map stays mounted underneath everything — hidden,
- * not unmounted, when another role is active — so Leaflet never
- * re-initialises mid-demo (and the driver animation can play behind).
+ * Zustand store. Each role owns its own column; the volunteer arc
+ * (supplies list → pledge → match → delivery) swaps screens in place.
  */
 export default function App() {
   const role = useStore((s) => s.role)
@@ -26,18 +24,9 @@ export default function App() {
       <Header />
 
       <main className="relative flex-1 overflow-hidden">
-        <div
-          className={cn(
-            'absolute inset-0',
-            role !== 'volunteer' && 'invisible',
-          )}
-        >
-          <MapView />
-        </div>
-
-        {/* Volunteer flow screens overlay the map */}
-        {role === 'volunteer' && screen !== 'map' && (
-          <div className="bg-background/95 absolute inset-0 z-10 backdrop-blur-sm">
+        {role === 'volunteer' && (
+          <div className="bg-background absolute inset-0">
+            {screen === 'map' && <SuppliesNeeded />}
             {screen === 'pledge' && <PledgeFlow />}
             {screen === 'match' && <MatchCard />}
             {screen === 'delivery' && <DeliveryConfirm />}
@@ -45,13 +34,13 @@ export default function App() {
         )}
 
         {role === 'shelter' && (
-          <div className="bg-background absolute inset-0 z-10">
+          <div className="bg-background absolute inset-0">
             {screen === 'post-need' ? <PostNeedForm /> : <ShelterDashboard />}
           </div>
         )}
 
         {role === 'requester' && (
-          <div className="bg-background absolute inset-0 z-10">
+          <div className="bg-background absolute inset-0">
             <RequestHelp />
           </div>
         )}

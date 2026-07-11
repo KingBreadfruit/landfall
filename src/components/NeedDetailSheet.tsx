@@ -1,4 +1,4 @@
-import { MapPin, Users } from 'lucide-react'
+import { MapPin, UserRound, Users, Warehouse } from 'lucide-react'
 import {
   Sheet,
   SheetContent,
@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { URGENCY_LABELS } from '@/lib/constants'
+import { KIND_LABEL, locationLabel, peopleLabel } from '@/lib/needs'
 import { useStore } from '@/lib/store'
 
 /**
@@ -36,19 +37,27 @@ export function NeedDetailSheet() {
         {need && (
           <>
             <SheetHeader>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Badge variant={need.urgency}>
                   {URGENCY_LABELS[need.urgency]}
                 </Badge>
                 <span className="text-muted-foreground flex items-center gap-1 text-xs">
+                  {need.kind === 'shelter' ? (
+                    <Warehouse className="size-3" />
+                  ) : (
+                    <UserRound className="size-3" />
+                  )}
+                  {KIND_LABEL[need.kind]}
+                </span>
+                <span className="text-muted-foreground flex items-center gap-1 text-xs">
                   <MapPin className="size-3" />
-                  {need.parish}
+                  {locationLabel(need)}
                 </span>
               </div>
               <SheetTitle className="text-xl">{need.community}</SheetTitle>
               <SheetDescription className="flex items-center gap-1.5">
                 <Users className="size-4" />
-                {need.peopleAffected} people affected
+                {peopleLabel(need)}
               </SheetDescription>
             </SheetHeader>
 

@@ -3,12 +3,17 @@ import { HERO_DRIVER_ID, HERO_NEED_ID } from './constants'
 import deliveryProof from '@/assets/delivery-proof.jpg'
 
 // ---------------------------------------------------------------------------
-// Seeded needs — six communities across Jamaica, mixed urgency.
-// The hero need (Portmore, CRITICAL) is the one the 60-second demo arc
-// runs on. Everything else is set dressing so the island looks alive.
+// Seeded needs across Jamaica, mixed urgency. Two kinds so the volunteer's
+// "Supplies Needed" screen can separate them: official SHELTERS and
+// individual PEOPLE in need who requested help directly.
+//
+// The hero need (Portmore HS, CRITICAL shelter) is the one the 60-second
+// demo arc runs on. Everything else is set dressing so the island looks
+// alive.
 // ---------------------------------------------------------------------------
 
 export const SEED_NEEDS: Need[] = [
+  // --- Shelters -----------------------------------------------------------
   {
     id: HERO_NEED_ID,
     community: 'Portmore HS Shelter',
@@ -16,6 +21,7 @@ export const SEED_NEEDS: Need[] = [
     lat: 17.9546,
     lng: -76.8827,
     parish: 'St. Catherine',
+    area: 'Portmore',
     urgency: 'critical',
     peopleAffected: 340,
     status: 'open',
@@ -25,27 +31,13 @@ export const SEED_NEEDS: Need[] = [
     ],
   },
   {
-    id: 'need-kingston-trench',
-    community: 'Trench Town Community Centre',
-    kind: 'community',
-    lat: 17.9905,
-    lng: -76.7967,
-    parish: 'Kingston',
-    urgency: 'high',
-    peopleAffected: 180,
-    status: 'open',
-    items: [
-      { name: 'Canned food', unit: 'boxes', qtyNeeded: 80, qtyPledged: 25 },
-      { name: 'Water', unit: 'cases', qtyNeeded: 60, qtyPledged: 10 },
-    ],
-  },
-  {
     id: 'need-spanish-town',
     community: 'Spanish Town Baptist Shelter',
     kind: 'shelter',
     lat: 17.9961,
     lng: -76.9515,
     parish: 'St. Catherine',
+    area: 'Spanish Town',
     urgency: 'high',
     peopleAffected: 220,
     status: 'open',
@@ -61,6 +53,7 @@ export const SEED_NEEDS: Need[] = [
     lat: 17.9411,
     lng: -77.109,
     parish: 'St. Catherine',
+    area: 'Old Harbour',
     urgency: 'normal',
     peopleAffected: 95,
     status: 'open',
@@ -70,34 +63,69 @@ export const SEED_NEEDS: Need[] = [
     ],
   },
   {
-    id: 'need-st-elizabeth',
-    community: 'Black River Community',
-    kind: 'community',
-    lat: 18.0263,
-    lng: -77.8487,
-    parish: 'St. Elizabeth',
-    urgency: 'critical',
-    peopleAffected: 410,
-    status: 'open',
-    items: [
-      { name: 'Generators', unit: 'units', qtyNeeded: 6, qtyPledged: 1 },
-      { name: 'Water', unit: 'cases', qtyNeeded: 150, qtyPledged: 15 },
-      { name: 'Tarpaulins', unit: 'tarps', qtyNeeded: 80, qtyPledged: 10 },
-    ],
-  },
-  {
     id: 'need-portland',
     community: 'Port Antonio Seventh-Day Shelter',
     kind: 'shelter',
     lat: 18.1745,
     lng: -76.4498,
     parish: 'Portland',
+    area: 'Port Antonio',
     urgency: 'normal',
     peopleAffected: 130,
     status: 'open',
     items: [
       { name: 'Canned food', unit: 'boxes', qtyNeeded: 45, qtyPledged: 18 },
       { name: 'Blankets', unit: 'blankets', qtyNeeded: 60, qtyPledged: 22 },
+    ],
+  },
+  // --- People in need -----------------------------------------------------
+  {
+    id: 'need-gregory-park',
+    community: 'Marlene B.',
+    kind: 'person',
+    lat: 17.9622,
+    lng: -76.871,
+    parish: 'St. Catherine',
+    area: 'Gregory Park, Portmore',
+    urgency: 'critical',
+    peopleAffected: 5,
+    status: 'open',
+    items: [
+      { name: 'Water', unit: 'cases', qtyNeeded: 6, qtyPledged: 0 },
+      { name: 'Baby supplies', unit: 'kits', qtyNeeded: 3, qtyPledged: 0 },
+    ],
+  },
+  {
+    id: 'need-kingston-trench',
+    community: 'Devon Grant',
+    kind: 'person',
+    lat: 17.9905,
+    lng: -76.7967,
+    parish: 'Kingston',
+    area: 'Trench Town',
+    urgency: 'high',
+    peopleAffected: 6,
+    status: 'open',
+    items: [
+      { name: 'Canned food', unit: 'boxes', qtyNeeded: 8, qtyPledged: 2 },
+      { name: 'Water', unit: 'cases', qtyNeeded: 6, qtyPledged: 1 },
+    ],
+  },
+  {
+    id: 'need-st-elizabeth',
+    community: 'The Palmer household',
+    kind: 'person',
+    lat: 18.0263,
+    lng: -77.8487,
+    parish: 'St. Elizabeth',
+    area: 'Black River',
+    urgency: 'critical',
+    peopleAffected: 8,
+    status: 'open',
+    items: [
+      { name: 'Water', unit: 'cases', qtyNeeded: 10, qtyPledged: 1 },
+      { name: 'Tarpaulins', unit: 'tarps', qtyNeeded: 4, qtyPledged: 0 },
+      { name: 'Baby supplies', unit: 'kits', qtyNeeded: 2, qtyPledged: 0 },
     ],
   },
 ]
@@ -153,11 +181,11 @@ export const SEED_DRIVERS: Driver[] = [
 export const SEED_PLEDGES: Pledge[] = [
   {
     id: 'pledge-1',
-    needId: 'need-kingston-trench',
+    needId: 'need-old-harbour',
     donorName: 'Hi-Lo Supermarket, Cross Roads',
     items: [
-      { name: 'Canned food', unit: 'boxes', qtyNeeded: 0, qtyPledged: 25 },
-      { name: 'Water', unit: 'cases', qtyNeeded: 0, qtyPledged: 10 },
+      { name: 'Water', unit: 'cases', qtyNeeded: 0, qtyPledged: 20 },
+      { name: 'Canned food', unit: 'boxes', qtyNeeded: 0, qtyPledged: 12 },
     ],
   },
   {
