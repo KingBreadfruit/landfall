@@ -2,6 +2,12 @@
 
 **The emergency logistics layer for the island.**
 
+### ▶️ Live demo: **https://landfall-snowy.vercel.app**
+
+Sign up (no email confirmation — you're straight in) or tap **Continue as
+guest**, then flip between the four roles in the bottom nav. Built as an
+installable, offline-first PWA.
+
 Built for the Ackee Circle Hackathon — theme: *Island Logistics with a
 twist.*
 
