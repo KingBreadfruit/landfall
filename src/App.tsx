@@ -7,6 +7,7 @@ import { MyRuns } from '@/components/MyRuns'
 import { RunDetail } from '@/components/RunDetail'
 import { TransferAnimation } from '@/components/TransferAnimation'
 import { DeliveryConfirm } from '@/components/DeliveryConfirm'
+import { AwaitingConfirm } from '@/components/AwaitingConfirm'
 import { PostNeedForm } from '@/components/PostNeedForm'
 import { RequestHelp } from '@/components/RequestHelp'
 import { RoleSwitcher } from '@/components/RoleSwitcher'
@@ -66,6 +67,7 @@ export default function App() {
             {screen === 'run' && <RunDetail />}
             {screen === 'transfer' && <TransferAnimation />}
             {screen === 'delivery' && <DeliveryConfirm />}
+            {screen === 'awaiting-confirm' && <AwaitingConfirm />}
           </div>
         )}
 

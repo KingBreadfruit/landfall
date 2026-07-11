@@ -106,6 +106,68 @@ export async function markRemoteNeed(
   }
 }
 
+/** A volunteer claims a repair: mark it matched and record who claimed it,
+ * so points can be awarded to them once the resident confirms. */
+export async function claimRepair(
+  id: string,
+  claimedBy: string | null,
+): Promise<void> {
+  if (!hasSupabase) return
+  try {
+    await supabase
+      .from('board_needs')
+      .update({ status: 'matched', claimed_by: claimedBy })
+      .eq('id', id)
+  } catch {
+    /* best-effort */
+  }
+}
+
+/** The repairs THIS resident reported that are done and awaiting their
+ * confirmation before points are released. */
+export async function fetchMyPendingRepairs(userId: string): Promise<Need[]> {
+  if (!hasSupabase) return []
+  try {
+    const { data, error } = await supabase
+      .from('board_needs')
+      .select('*')
+      .eq('created_by', userId)
+      .eq('kind', 'repair')
+      .eq('status', 'matched')
+    if (error || !data) return []
+    return (data as BoardRow[]).map(rowToNeed)
+  } catch {
+    return []
+  }
+}
+
+/** Resident confirms a repair is done → awards the claimer's points
+ * server-side (via the confirm_repair function). */
+export async function confirmRepairRemote(id: string): Promise<void> {
+  if (!hasSupabase) return
+  try {
+    await supabase.rpc('confirm_repair', { need_id: id })
+  } catch {
+    /* best-effort */
+  }
+}
+
+/** Of the given repair ids, which are now confirmed (for reload reconcile). */
+export async function fetchConfirmedIds(ids: string[]): Promise<string[]> {
+  if (!hasSupabase || ids.length === 0) return []
+  try {
+    const { data, error } = await supabase
+      .from('board_needs')
+      .select('id,status')
+      .in('id', ids)
+      .eq('status', 'confirmed')
+    if (error || !data) return []
+    return (data as { id: string }[]).map((r) => r.id)
+  } catch {
+    return []
+  }
+}
+
 // --- Shelter check-ins (citizen declares they're heading to a shelter) -----
 
 export type CheckIn = { id: string; shelterId: string; name: string; eta: string }
@@ -166,6 +228,7 @@ export function subscribeToBoard(
   onUpsert: (need: Need) => void,
   onRemove: (id: string) => void,
   onCheckin: (ci: CheckIn) => void,
+  onConfirmed: (id: string) => void,
   onStatus?: (live: boolean) => void,
 ): void {
   if (!hasSupabase || subscribed) return
@@ -186,6 +249,7 @@ export function subscribeToBoard(
           const next = payload.new as BoardRow
           if (next.status === 'open') onUpsert(rowToNeed(next))
           else onRemove(next.id)
+          if (next.status === 'confirmed') onConfirmed(next.id)
         },
       )
       .on(

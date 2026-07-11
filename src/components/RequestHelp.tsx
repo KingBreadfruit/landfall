@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   ArrowLeft,
   Camera,
   CheckCircle2,
   ChevronRight,
+  Hammer,
   QrCode,
   RotateCcw,
   ShoppingBasket,
@@ -113,6 +114,13 @@ export function RequestHelp() {
 
 function RequestHome({ onPick }: { onPick: (v: View) => void }) {
   const [sheltersOpen, setSheltersOpen] = useState(false)
+  const repairsToConfirm = useStore((s) => s.repairsToConfirm)
+  const confirmRepairDone = useStore((s) => s.confirmRepairDone)
+  const refreshConfirmations = useStore((s) => s.refreshConfirmations)
+
+  useEffect(() => {
+    void refreshConfirmations()
+  }, [refreshConfirmations])
 
   return (
     <div className="mx-auto flex h-full w-full max-w-lg flex-col gap-4 overflow-y-auto p-4">
@@ -122,6 +130,38 @@ function RequestHome({ onPick }: { onPick: (v: View) => void }) {
           Tap one. We'll do the rest.
         </p>
       </div>
+
+      {repairsToConfirm.length > 0 && (
+        <div className="border-success/40 bg-success/5 flex flex-col gap-3 rounded-2xl border p-4">
+          <div className="flex items-center gap-2">
+            <Hammer className="text-success size-4" />
+            <p className="text-sm font-semibold">Confirm completed work</p>
+          </div>
+          <p className="text-muted-foreground text-xs">
+            A volunteer says a repair you reported is done. Confirm it so they
+            get their points — points only release once you say the work's
+            actually finished.
+          </p>
+          {repairsToConfirm.map((r) => (
+            <div
+              key={r.id}
+              className="flex items-center gap-3 rounded-xl border bg-card p-3"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">
+                  {r.damageType ?? 'Repair'}
+                </p>
+                <p className="text-muted-foreground truncate text-xs">
+                  {locationLabel(r)}
+                </p>
+              </div>
+              <Button size="sm" onClick={() => confirmRepairDone(r.id)}>
+                <CheckCircle2 /> Confirm done
+              </Button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* offline reassurance — shelters are cached on this phone */}
       <button

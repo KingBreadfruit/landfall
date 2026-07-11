@@ -31,7 +31,11 @@ import { useAuth } from './auth'
 import { hasSupabase, supabase } from './supabase'
 import {
   type CheckIn,
+  claimRepair,
+  confirmRepairRemote,
   fetchCheckins,
+  fetchConfirmedIds,
+  fetchMyPendingRepairs,
   fetchOpenNeeds,
   insertCheckin,
   markRemoteNeed,
@@ -162,6 +166,11 @@ type LandfallState = {
   offlineMode: boolean
   /** True once we're subscribed to the shared board (cross-device live). */
   boardLive: boolean
+  /** Repairs this volunteer has done, awaiting the resident's confirmation
+   * before points are released. */
+  pendingGroundwork: string[]
+  /** Repairs THIS resident reported that are done and need their sign-off. */
+  repairsToConfirm: Need[]
 
   // Recognition
   you: Contributor
@@ -193,6 +202,10 @@ type LandfallState = {
   declareIncoming: (shelterId: string, name: string) => void
   finishSupplyDelivery: () => void
   takeUpGroundwork: (needId: string) => void
+  /** Resident confirms a claimed repair is done → releases the points. */
+  confirmRepairDone: (needId: string) => Promise<void>
+  /** Pull the repairs this resident still needs to confirm. */
+  refreshConfirmations: () => Promise<void>
   submitSupplyRequest: (payload: {
     name: string
     area: string
@@ -234,6 +247,8 @@ export const useStore = create<LandfallState>()(
   activeDelivery: null,
   offlineMode: false,
   boardLive: false,
+  pendingGroundwork: [],
+  repairsToConfirm: [],
 
   you: SEED_YOU,
   leaderboard: SEED_LEADERBOARD,
@@ -431,21 +446,55 @@ export const useStore = create<LandfallState>()(
     void persistContribution('supply', reward.points, reward.newBadges)
   },
 
-  // A volunteer takes up a repair (Groundwork, flat 10 pts). Removes the
-  // repair from the board and shows the reward beat.
+  // A volunteer takes up a repair (Groundwork, flat 10 pts). Points are
+  // held until the resident who reported it confirms the work is done.
   takeUpGroundwork: (needId) => {
     const { needs } = get()
     const repair = needs.find((n) => n.id === needId)
-    const place = repair?.damageType ?? 'the site'
-    const reward = rewardFor('groundwork', 0, place)
-    set({
-      lastReward: reward,
-      needs: needs.filter((n) => n.id !== needId),
+    const place = repair?.damageType ?? 'the repair'
+    const auth = useAuth.getState()
+
+    // Guest / no backend: there's no resident on another device to confirm,
+    // so award immediately (keeps the offline demo working).
+    if (!hasSupabase || auth.guestMode) {
+      const reward = rewardFor('groundwork', 0, place)
+      set({
+        lastReward: reward,
+        needs: needs.filter((n) => n.id !== needId),
+        selectedNeedId: null,
+        role: 'volunteer',
+        screen: 'delivery',
+      })
+      void persistContribution('groundwork', reward.points, reward.newBadges)
+      return
+    }
+
+    // Backed by the shared board: claim it and wait for confirmation.
+    set((s) => ({
+      needs: s.needs.filter((n) => n.id !== needId),
+      pendingGroundwork: [needId, ...s.pendingGroundwork],
+      pendingPlace: place,
       selectedNeedId: null,
-      screen: 'delivery',
-    })
-    void markRemoteNeed(needId, 'matched')
-    void persistContribution('groundwork', reward.points, reward.newBadges)
+      role: 'volunteer',
+      screen: 'awaiting-confirm',
+    }))
+    void claimRepair(needId, currentUserId())
+  },
+
+  // Resident confirms a claimed repair → the RPC releases the claimer's
+  // points server-side; we just drop it from the resident's to-confirm list.
+  confirmRepairDone: async (needId) => {
+    await confirmRepairRemote(needId)
+    set((s) => ({
+      repairsToConfirm: s.repairsToConfirm.filter((n) => n.id !== needId),
+    }))
+  },
+
+  refreshConfirmations: async () => {
+    const uid = currentUserId()
+    if (!uid) return
+    const list = await fetchMyPendingRepairs(uid)
+    set({ repairsToConfirm: list })
   },
 
   // Citizen posts a supply request → a new person-need on the board.
@@ -541,20 +590,53 @@ export const useStore = create<LandfallState>()(
   // here too. Local seed needs are left untouched.
   loadBoard: async () => {
     if (!hasSupabase) return
-    const [remote, checkins] = await Promise.all([
+    const uid = currentUserId()
+    const [remote, checkins, myRepairs] = await Promise.all([
       fetchOpenNeeds(),
       fetchCheckins(),
+      uid ? fetchMyPendingRepairs(uid) : Promise.resolve([]),
     ])
-    if (remote.length || checkins.length) {
-      set((s) => ({
-        needs: remote.reduce((acc, n) => upsertNeed(acc, n), s.needs),
-        shelters: checkins.reduce((acc, c) => addCheckin(acc, c), s.shelters),
-      }))
+    set((s) => ({
+      needs: remote.reduce((acc, n) => upsertNeed(acc, n), s.needs),
+      shelters: checkins.reduce((acc, c) => addCheckin(acc, c), s.shelters),
+      repairsToConfirm: myRepairs,
+    }))
+
+    // Reconcile: if a repair we claimed was confirmed while we were away,
+    // clear it and refresh the profile so the awarded points show up.
+    const pending = get().pendingGroundwork
+    if (pending.length) {
+      const done = await fetchConfirmedIds(pending)
+      if (done.length) {
+        set((s) => ({
+          pendingGroundwork: s.pendingGroundwork.filter(
+            (id) => !done.includes(id),
+          ),
+        }))
+        void useAuth.getState().refreshProfile()
+      }
     }
+
     subscribeToBoard(
       (need) => set((s) => ({ needs: upsertNeed(s.needs, need) })),
       (id) => set((s) => ({ needs: s.needs.filter((n) => n.id !== id) })),
       (ci) => set((s) => ({ shelters: addCheckin(s.shelters, ci) })),
+      (confirmedId) => {
+        const { pendingGroundwork, pendingPlace } = get()
+        if (!pendingGroundwork.includes(confirmedId)) return
+        // Points were awarded server-side by confirm_repair — show the reward
+        // beat and refresh the profile to reflect the new total.
+        const reward = rewardFor('groundwork', 0, pendingPlace || 'the repair')
+        set((s) => ({
+          pendingGroundwork: s.pendingGroundwork.filter(
+            (id) => id !== confirmedId,
+          ),
+          lastReward: reward,
+          role: 'volunteer',
+          screen: 'delivery',
+        }))
+        void useAuth.getState().refreshProfile()
+      },
       (live) => set({ boardLive: live }),
     )
   },
@@ -570,6 +652,7 @@ export const useStore = create<LandfallState>()(
         runs: s.runs,
         shelters: s.shelters,
         pledges: s.pledges,
+        pendingGroundwork: s.pendingGroundwork,
       }),
       // Reconcile persisted state with the current build. The Portmore
       // drop-off hub (need + shelter) must ALWAYS be present — an earlier

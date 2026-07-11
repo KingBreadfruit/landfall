@@ -26,7 +26,7 @@ export type Need = {
   urgency: Urgency
   /** Shelter: people sheltering. Person: household size. */
   peopleAffected: number
-  status: 'open' | 'matched' | 'fulfilled'
+  status: 'open' | 'matched' | 'fulfilled' | 'confirmed'
   /** repair only: what kind of damage, and a photo of it. */
   damageType?: string
   photoUrl?: string
@@ -115,6 +115,7 @@ export type Screen =
   | 'transfer'
   | 'delivery'
   | 'post-need'
+  | 'awaiting-confirm'
 
 export type RunStatus = 'to_photograph' | 'pending' | 'verified' | 'delivered'
 
