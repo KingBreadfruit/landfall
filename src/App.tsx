@@ -1,4 +1,6 @@
+import { useEffect } from 'react'
 import { Header } from '@/components/Header'
+import { AuthScreen } from '@/components/AuthScreen'
 import { SuppliesNeeded } from '@/components/SuppliesNeeded'
 import { NeedDetailSheet } from '@/components/NeedDetailSheet'
 import { PledgeFlow } from '@/components/PledgeFlow'
@@ -10,17 +12,35 @@ import { RequestHelp } from '@/components/RequestHelp'
 import { RoleSwitcher } from '@/components/RoleSwitcher'
 import { ShelterList } from '@/components/ShelterList'
 import { ShelterDetail } from '@/components/ShelterDetail'
+import { useAuth } from '@/lib/auth'
 import { useStore } from '@/lib/store'
 
 /**
  * Shell + "router": current role (bottom nav) and screen live in the
- * Zustand store. Each role owns its own column; the volunteer arc
- * (supplies list → pledge → match → delivery) swaps screens in place.
+ * Zustand store. Gated behind Supabase auth — no session, no app.
  */
 export default function App() {
+  const initAuth = useAuth((s) => s.init)
+  const ready = useAuth((s) => s.ready)
+  const session = useAuth((s) => s.session)
+
   const role = useStore((s) => s.role)
   const screen = useStore((s) => s.screen)
   const selectedShelterId = useStore((s) => s.selectedShelterId)
+
+  useEffect(() => {
+    initAuth()
+  }, [initAuth])
+
+  if (!ready) {
+    return (
+      <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
+        Loading…
+      </div>
+    )
+  }
+
+  if (!session) return <AuthScreen />
 
   return (
     <div className="flex h-full flex-col">
