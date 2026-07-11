@@ -55,3 +55,10 @@ export type Delivery = {
 
 /** App screens — Zustand-driven, no router needed for a demo. */
 export type Screen = 'map' | 'pledge' | 'match' | 'delivery' | 'post-need'
+
+/**
+ * The three perspectives in the network, switchable from the bottom nav:
+ * volunteer (see needs, pledge, run supplies), shelter (post + track
+ * needs), requester (a person asking for help).
+ */
+export type Role = 'volunteer' | 'shelter' | 'requester'

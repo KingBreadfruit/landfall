@@ -16,7 +16,8 @@ export function Header() {
   const toggleOfflineMode = useStore((s) => s.toggleOfflineMode)
 
   return (
-    <header className="relative z-20 flex h-14 items-center justify-between border-b bg-background/95 px-4 backdrop-blur">
+    <header className="relative z-20 border-b bg-background/95 pt-[env(safe-area-inset-top)] backdrop-blur">
+      <div className="flex h-14 items-center justify-between px-4">
       <button
         type="button"
         onClick={toggleOfflineMode}
@@ -35,8 +36,12 @@ export function Header() {
             : 'pointer-events-none opacity-0',
         )}
       >
-        <WifiOff className="size-3.5" />
-        <span>Offline — 3 pending • will sync when signal returns</span>
+        <WifiOff className="size-3.5 shrink-0" />
+        <span className="hidden sm:inline">
+          Offline — 3 pending • will sync when signal returns
+        </span>
+        <span className="sm:hidden">Offline — 3 pending</span>
+      </div>
       </div>
     </header>
   )

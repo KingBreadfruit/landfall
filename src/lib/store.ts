@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Delivery, Driver, Need, Pledge, Screen } from './types'
+import type { Delivery, Driver, Need, Pledge, Role, Screen } from './types'
 import { DEMO_DELIVERY, SEED_DRIVERS, SEED_NEEDS, SEED_PLEDGES } from './seed'
 
 // ---------------------------------------------------------------------------
@@ -15,6 +15,7 @@ import { DEMO_DELIVERY, SEED_DRIVERS, SEED_NEEDS, SEED_PLEDGES } from './seed'
 
 type LandfallState = {
   screen: Screen
+  role: Role
   needs: Need[]
   drivers: Driver[]
   pledges: Pledge[]
@@ -25,6 +26,7 @@ type LandfallState = {
 
   // Actions
   setScreen: (screen: Screen) => void
+  setRole: (role: Role) => void
   selectNeed: (needId: string | null) => void
   startPledge: () => void
   confirmPledge: (donorName: string, quantities: Record<string, number>) => void
@@ -36,6 +38,7 @@ type LandfallState = {
 
 export const useStore = create<LandfallState>((set, get) => ({
   screen: 'map',
+  role: 'volunteer',
   needs: SEED_NEEDS,
   drivers: SEED_DRIVERS,
   pledges: SEED_PLEDGES,
@@ -44,6 +47,10 @@ export const useStore = create<LandfallState>((set, get) => ({
   offlineMode: false,
 
   setScreen: (screen) => set({ screen }),
+
+  // Switching perspective always lands on that role's home screen.
+  setRole: (role) =>
+    set({ role, screen: 'map', selectedNeedId: null }),
 
   selectNeed: (needId) => set({ selectedNeedId: needId }),
 

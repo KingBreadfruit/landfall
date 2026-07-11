@@ -84,11 +84,35 @@ src/
     MatchCard.tsx          match card + timeline (static rough-in)
     DeliveryConfirm.tsx    photo + verified badge (placeholder photo)
     PostNeedForm.tsx       static rough-in
+    RoleSwitcher.tsx       bottom tab bar: Supply runs / Shelter / Need help
+    ShelterDashboard.tsx   shelter perspective: need + incoming pledges
+    RequestHelp.tsx        person-in-need form (static rough-in)
   assets/delivery-proof.jpg  generated placeholder — SWAP for real photo
 ```
 
 Hero need: `need-portmore-hs` (Portmore, CRITICAL). Hero driver:
 `driver-marcus` (Half Way Tree). Both exported as constants.
+
+## Mobile / roles
+
+Mobile-first responsive PWA — installs to the home screen on both
+Android (Chrome: Install app) and iOS (Safari: Share → Add to Home
+Screen; icons + meta tags are set up). Safe-area insets handled;
+pull-to-refresh and double-tap zoom disabled so nothing derails the
+demo.
+
+The bottom nav switches perspective instantly — one presenter, one
+device, three views:
+
+- **Supply runs** (volunteer/donor): the map + the whole demo arc.
+- **Shelter**: Portmore HS dashboard — need progress, incoming pledges,
+  post a new need. Pledges made in the volunteer view appear here —
+  great two-beat demo: pledge as volunteer, flip to Shelter, "and this
+  is what the shelter sees."
+- **Need help** (person in need): dead-simple request form.
+
+The demo arc runs entirely in the Supply runs tab; role switches always
+land on that role's home screen.
 
 ## Morning build order (in the room)
 
