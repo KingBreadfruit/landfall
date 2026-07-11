@@ -1,4 +1,4 @@
-import { Award, Trophy } from 'lucide-react'
+import { Award, LogOut, Trophy } from 'lucide-react'
 import {
   Sheet,
   SheetContent,
@@ -7,12 +7,15 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { Badge } from '@/components/ui/badge'
+import type { BadgeKind } from '@/lib/types'
+import { useAuth } from '@/lib/auth'
 import { useStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
 
 /**
- * Community recognition: top contributors, ranked by points. "You" is
- * highlighted so the climb after a contribution is visible.
+ * Community recognition: top contributors, ranked by points. "You" (your
+ * real, persisted profile) is highlighted so the climb after a
+ * contribution is visible. Other contributors are demo dressing.
  */
 export function Leaderboard({
   open,
@@ -21,10 +24,18 @@ export function Leaderboard({
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
-  const you = useStore((s) => s.you)
-  const leaderboard = useStore((s) => s.leaderboard)
+  const profile = useAuth((s) => s.profile)
+  const signOut = useAuth((s) => s.signOut)
+  const others = useStore((s) => s.leaderboard)
 
-  const ranked = [...leaderboard, you].sort((a, b) => b.points - a.points)
+  const you = {
+    id: profile?.id ?? 'you',
+    name: 'You',
+    points: profile?.points ?? 0,
+    contributions: 0,
+    badges: (profile?.badges ?? []) as BadgeKind[],
+  }
+  const ranked = [...others, you].sort((a, b) => b.points - a.points)
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -68,8 +79,9 @@ export function Leaderboard({
                     )}
                   </div>
                   <p className="text-muted-foreground text-xs">
-                    {c.contributions}{' '}
-                    {c.contributions === 1 ? 'contribution' : 'contributions'}
+                    {isYou
+                      ? "That's you"
+                      : `${c.contributions} ${c.contributions === 1 ? 'contribution' : 'contributions'}`}
                   </p>
                 </div>
                 <Badge variant={isYou ? 'default' : 'secondary'} className="shrink-0 tabular-nums">
@@ -78,6 +90,19 @@ export function Leaderboard({
               </div>
             )
           })}
+        </div>
+
+        <div className="mt-2 flex items-center justify-between px-4">
+          <span className="text-muted-foreground truncate text-xs">
+            Signed in as {profile?.name ?? 'you'}
+          </span>
+          <button
+            type="button"
+            onClick={() => signOut()}
+            className="text-muted-foreground flex shrink-0 cursor-pointer items-center gap-1 text-xs font-medium"
+          >
+            <LogOut className="size-3.5" /> Sign out
+          </button>
         </div>
       </SheetContent>
     </Sheet>
