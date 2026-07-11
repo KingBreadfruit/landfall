@@ -1,112 +1,110 @@
-import {
-  ChevronRight,
-  MapPin,
-  UserRound,
-  Users,
-  Warehouse,
-  Wrench,
-} from 'lucide-react'
+import { ChevronRight, MapPin, UserRound, Warehouse, Wrench } from 'lucide-react'
 import type { Need } from '@/lib/types'
 import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
-import { URGENCY_LABELS } from '@/lib/constants'
-import { locationLabel, overallProgress, peopleLabel } from '@/lib/needs'
+import { URGENCY_COLORS, URGENCY_LABELS } from '@/lib/constants'
+import { locationLabel, overallProgress } from '@/lib/needs'
 import { useStore } from '@/lib/store'
 
 /**
- * A scannable list row for one need on the volunteer's Supplies Needed
- * screen. Tapping it opens the detail sheet. Repairs render differently —
- * a damage photo + type, no supply progress.
+ * A need on the board — urgency-coded left rule, mono meta, progress rail.
  */
 export function NeedCard({ need }: { need: Need }) {
   const selectNeed = useStore((s) => s.selectNeed)
+  const color = URGENCY_COLORS[need.urgency]
 
   if (need.kind === 'repair') {
     return (
       <button
         type="button"
         onClick={() => selectNeed(need.id)}
-        className="flex w-full items-center gap-3 rounded-xl border bg-card p-3 text-left shadow-sm transition-colors hover:bg-accent"
+        className="flex w-full items-center gap-[13px] rounded-[15px] border border-border bg-card p-[13px] text-left shadow-sm transition-colors hover:border-border/80"
+        style={{ borderLeft: `3px solid ${color}` }}
       >
         {need.photoUrl ? (
-          <img
-            src={need.photoUrl}
-            alt=""
-            className="size-12 shrink-0 rounded-lg object-cover"
+          <span
+            className="size-[52px] shrink-0 rounded-[11px] bg-cover bg-center"
+            style={{ backgroundImage: `url('${need.photoUrl}')` }}
           />
         ) : (
-          <div className="bg-secondary flex size-12 shrink-0 items-center justify-center rounded-lg">
+          <span className="bg-accent flex size-[46px] shrink-0 items-center justify-center rounded-xl text-muted-foreground">
             <Wrench className="size-5" />
-          </div>
+          </span>
         )}
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <Badge variant={need.urgency} className="shrink-0">
-              {URGENCY_LABELS[need.urgency]}
-            </Badge>
-            <span className="truncate text-sm font-semibold">
+        <span className="min-w-0 flex-1">
+          <span className="flex items-center gap-2">
+            <Badge variant={need.urgency}>{URGENCY_LABELS[need.urgency]}</Badge>
+            <span className="truncate text-[15px] font-semibold">
               {need.damageType}
             </span>
-          </div>
-          <div className="text-muted-foreground mt-1 flex items-center gap-1 text-xs">
+          </span>
+          <span className="mono-label mt-1 flex items-center gap-1 text-[10px] tracking-[0.02em] normal-case text-muted-foreground">
             <MapPin className="size-3 shrink-0" />
             <span className="truncate">{locationLabel(need)}</span>
-          </div>
-          <p className="text-muted-foreground mt-1 text-xs">
-            Volunteers needed to clear / repair
-          </p>
-        </div>
-        <ChevronRight className="text-muted-foreground size-4 shrink-0" />
+          </span>
+          <span className="mono-label mt-1 block text-[10.5px] tracking-normal normal-case text-muted-foreground/70">
+            Hands needed · clear / repair
+          </span>
+        </span>
+        <ChevronRight className="size-4 shrink-0 text-muted-foreground/50" />
       </button>
     )
   }
 
   const KindIcon = need.kind === 'shelter' ? Warehouse : UserRound
   const pct = overallProgress(need)
-  const items = need.items.map((i) => i.name).join(' · ')
+  const items = need.items.map((i) => i.name).join('  ·  ')
+  const metaRight =
+    need.kind === 'shelter'
+      ? `${need.peopleAffected} ppl`
+      : `HH ${need.peopleAffected}`
 
   return (
     <button
       type="button"
       onClick={() => selectNeed(need.id)}
-      className="flex w-full items-center gap-3 rounded-xl border bg-card p-3 text-left shadow-sm transition-colors hover:bg-accent"
+      className="flex w-full items-center gap-[13px] rounded-[15px] border border-border bg-card p-[13px] text-left shadow-sm transition-colors hover:border-border/80"
+      style={{ borderLeft: `3px solid ${color}` }}
     >
-      <div className="bg-secondary flex size-10 shrink-0 items-center justify-center rounded-lg">
-        <KindIcon className="size-5" />
-      </div>
+      <span className="bg-accent flex size-[46px] shrink-0 items-center justify-center rounded-xl text-muted-foreground">
+        <KindIcon className="size-5" strokeWidth={1.7} />
+      </span>
 
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
+      <span className="flex min-w-0 flex-1 flex-col gap-[5px]">
+        <span className="flex items-center gap-2">
           <Badge variant={need.urgency} className="shrink-0">
             {URGENCY_LABELS[need.urgency]}
           </Badge>
-          <span className="truncate text-sm font-semibold">
+          <span className="truncate text-[15px] font-semibold">
             {need.community}
           </span>
-        </div>
+        </span>
 
-        <div className="text-muted-foreground mt-1 flex items-center gap-3 text-xs">
+        <span className="mono-label flex items-center justify-between gap-3 text-[11px] tracking-normal normal-case text-muted-foreground">
           <span className="flex min-w-0 items-center gap-1">
             <MapPin className="size-3 shrink-0" />
             <span className="truncate">{locationLabel(need)}</span>
           </span>
-          <span className="flex shrink-0 items-center gap-1">
-            <Users className="size-3" />
-            {peopleLabel(need)}
-          </span>
-        </div>
+          <span className="shrink-0">{metaRight}</span>
+        </span>
 
-        <div className="mt-2 flex items-center gap-2">
-          <Progress value={pct} className="h-1.5" />
-          <span className="text-muted-foreground shrink-0 text-xs font-medium tabular-nums">
+        <span className="flex items-center gap-[9px]">
+          <span className="bg-accent block h-1.5 flex-1 overflow-hidden rounded-full">
+            <span
+              className="block h-full rounded-full"
+              style={{ width: `${pct}%`, background: color }}
+            />
+          </span>
+          <span className="mono-label shrink-0 text-[10px] tracking-normal normal-case text-muted-foreground">
             {pct}%
           </span>
-        </div>
+        </span>
 
-        <p className="text-muted-foreground mt-1 truncate text-xs">{items}</p>
-      </div>
+        <span className="mono-label block truncate text-[10.5px] tracking-normal normal-case text-muted-foreground/60">
+          {items}
+        </span>
+      </span>
 
-      <ChevronRight className="text-muted-foreground size-4 shrink-0" />
+      <ChevronRight className="size-4 shrink-0 text-muted-foreground/50" />
     </button>
   )
 }

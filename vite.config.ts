@@ -17,8 +17,8 @@ export default defineConfig({
         short_name: 'Landfall',
         description:
           'Emergency logistics dispatch for hurricane relief in Jamaica.',
-        theme_color: '#0f172a',
-        background_color: '#0f172a',
+        theme_color: '#0c1116',
+        background_color: '#0c1116',
         display: 'standalone',
         start_url: '/',
         icons: [
