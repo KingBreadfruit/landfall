@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { LifeBuoy, WifiOff } from 'lucide-react'
 import { APP_NAME } from '@/lib/constants'
 import { useStore } from '@/lib/store'
@@ -6,14 +7,28 @@ import { cn } from '@/lib/utils'
 /**
  * App header: logo + the offline badge.
  *
- * The badge is a pitch beat — click the logo mark to toggle it during the
- * demo ("Offline — 3 pending • will sync when signal returns"). The app
- * itself genuinely works offline via the PWA service worker; the badge is
- * the visual reinforcement.
+ * The badge shows automatically when the browser actually loses the
+ * network (online/offline events), and can still be toggled manually by
+ * clicking the logo during the pitch. The app itself genuinely works
+ * offline via the PWA service worker; the badge is the visual
+ * reinforcement.
  */
 export function Header() {
   const offlineMode = useStore((s) => s.offlineMode)
   const toggleOfflineMode = useStore((s) => s.toggleOfflineMode)
+  const setOfflineMode = useStore((s) => s.setOfflineMode)
+
+  useEffect(() => {
+    const goOffline = () => setOfflineMode(true)
+    const goOnline = () => setOfflineMode(false)
+    window.addEventListener('offline', goOffline)
+    window.addEventListener('online', goOnline)
+    if (!navigator.onLine) setOfflineMode(true)
+    return () => {
+      window.removeEventListener('offline', goOffline)
+      window.removeEventListener('online', goOnline)
+    }
+  }, [setOfflineMode])
 
   return (
     <header className="relative z-20 border-b bg-background/95 pt-[env(safe-area-inset-top)] backdrop-blur">

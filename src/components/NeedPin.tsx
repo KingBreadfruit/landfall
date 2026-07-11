@@ -13,6 +13,8 @@ export function NeedPin({ need }: { need: Need }) {
   const selectNeed = useStore((s) => s.selectNeed)
 
   const icon = useMemo(() => {
+    // SECURITY: this html string is injected raw by Leaflet. Keep it
+    // built from constants only — never interpolate user input here.
     const color = URGENCY_COLORS[need.urgency]
     const pulse =
       need.urgency === 'critical'

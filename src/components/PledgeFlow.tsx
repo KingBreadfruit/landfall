@@ -106,6 +106,7 @@ export function PledgeFlow() {
             <Input
               id="donor-name"
               placeholder="e.g. Hi-Lo Supermarket"
+              maxLength={80}
               value={donorName}
               onChange={(e) => setDonorName(e.target.value)}
             />
@@ -114,7 +115,7 @@ export function PledgeFlow() {
           <Button
             size="lg"
             disabled={total === 0}
-            onClick={() => confirmPledge(donorName || 'Anonymous donor', quantities)}
+            onClick={() => confirmPledge(donorName, quantities)}
           >
             Confirm pledge
           </Button>
