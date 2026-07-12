@@ -80,6 +80,32 @@ function currentUserId(): string | null {
   return useAuth.getState().session?.user.id ?? null
 }
 
+// Offline outbox: a publish that fails (e.g. no signal) is queued and
+// retried on reconnect, so a request made offline reaches the shared board
+// the moment the network returns.
+type OutboxOp =
+  | { kind: 'need'; need: Need; createdBy: string | null }
+  | { kind: 'checkin'; ci: CheckIn; createdBy: string | null }
+  | { kind: 'claim'; id: string; claimedBy: string | null }
+  | { kind: 'mark'; id: string; status: Need['status'] }
+  | { kind: 'confirm'; id: string }
+
+/** Attempt a single outbox op. Returns true on success. */
+function runOp(op: OutboxOp): Promise<boolean> {
+  switch (op.kind) {
+    case 'need':
+      return upsertRemoteNeed(op.need, op.createdBy)
+    case 'checkin':
+      return insertCheckin(op.ci, op.createdBy)
+    case 'claim':
+      return claimRepair(op.id, op.claimedBy)
+    case 'mark':
+      return markRemoteNeed(op.id, op.status)
+    case 'confirm':
+      return confirmRepairRemote(op.id)
+  }
+}
+
 /**
  * Compute the reward for a contribution against the signed-in user's
  * PERSISTED profile (points + badges live in Supabase). Verified is
@@ -171,6 +197,8 @@ type LandfallState = {
   pendingGroundwork: string[]
   /** Repairs THIS resident reported that are done and need their sign-off. */
   repairsToConfirm: Need[]
+  /** Publishes that failed offline, waiting to retry on reconnect. */
+  outbox: OutboxOp[]
 
   // Recognition
   you: Contributor
@@ -229,6 +257,10 @@ type LandfallState = {
   setOfflineMode: (offline: boolean) => void
   /** Pull the shared board and subscribe to live changes (cross-device). */
   loadBoard: () => Promise<void>
+  /** Retry any queued publishes that failed offline. */
+  flushOutbox: () => Promise<void>
+  /** Attempt a publish; queue it for retry if it fails (offline). */
+  queueOp: (op: OutboxOp) => void
 }
 
 export const useStore = create<LandfallState>()(
@@ -249,6 +281,7 @@ export const useStore = create<LandfallState>()(
   boardLive: false,
   pendingGroundwork: [],
   repairsToConfirm: [],
+  outbox: [],
 
   you: SEED_YOU,
   leaderboard: SEED_LEADERBOARD,
@@ -328,7 +361,7 @@ export const useStore = create<LandfallState>()(
     })
     const ci: CheckIn = { id: `inc-${Date.now()}`, shelterId, name: clean, eta }
     set((s) => ({ shelters: addCheckin(s.shelters, ci) }))
-    void insertCheckin(ci, currentUserId())
+    get().queueOp({ kind: 'checkin', ci, createdBy: currentUserId() })
   },
 
   // --- Volunteer runs (claim → proof → verify → QR → deliver) ----------
@@ -378,9 +411,10 @@ export const useStore = create<LandfallState>()(
     // (request cleared), a person/repair leaves the open board entirely.
     if (need.kind === 'shelter') {
       const updated = get().needs.find((n) => n.id === needId)
-      if (updated) void upsertRemoteNeed(updated, currentUserId())
+      if (updated)
+        get().queueOp({ kind: 'need', need: updated, createdBy: currentUserId() })
     } else {
-      void markRemoteNeed(needId, 'matched')
+      get().queueOp({ kind: 'mark', id: needId, status: 'matched' })
     }
   },
 
@@ -478,13 +512,14 @@ export const useStore = create<LandfallState>()(
       role: 'volunteer',
       screen: 'awaiting-confirm',
     }))
-    void claimRepair(needId, currentUserId())
+    get().queueOp({ kind: 'claim', id: needId, claimedBy: currentUserId() })
   },
 
   // Resident confirms a claimed repair → the RPC releases the claimer's
   // points server-side; we just drop it from the resident's to-confirm list.
   confirmRepairDone: async (needId) => {
-    await confirmRepairRemote(needId)
+    const ok = await confirmRepairRemote(needId)
+    if (!ok) get().queueOp({ kind: 'confirm', id: needId })
     set((s) => ({
       repairsToConfirm: s.repairsToConfirm.filter((n) => n.id !== needId),
     }))
@@ -523,7 +558,7 @@ export const useStore = create<LandfallState>()(
       status: 'open',
     }
     set((s) => ({ needs: [need, ...s.needs] }))
-    void upsertRemoteNeed(need, currentUserId())
+    get().queueOp({ kind: 'need', need, createdBy: currentUserId() })
   },
 
   // Citizen reports damage → a new repair on the board (Groundwork).
@@ -544,7 +579,7 @@ export const useStore = create<LandfallState>()(
       photoUrl,
     }
     set((s) => ({ needs: [need, ...s.needs] }))
-    void upsertRemoteNeed(need, currentUserId())
+    get().queueOp({ kind: 'need', need, createdBy: currentUserId() })
   },
 
   // Shelter requests goods — same catalog as a citizen, but it populates
@@ -566,7 +601,7 @@ export const useStore = create<LandfallState>()(
       ),
     }))
     const hero = get().needs.find((n) => n.id === HERO_NEED_ID)
-    if (hero) void upsertRemoteNeed(hero, currentUserId())
+    if (hero) get().queueOp({ kind: 'need', need: hero, createdBy: currentUserId() })
   },
 
   resetDemo: () =>
@@ -588,8 +623,28 @@ export const useStore = create<LandfallState>()(
   // Merge the shared board into the local one and keep it live. Remote
   // needs are upserted by id; a need marked off-board elsewhere is removed
   // here too. Local seed needs are left untouched.
+  queueOp: (op) => {
+    void (async () => {
+      const ok = await runOp(op)
+      if (!ok) set((s) => ({ outbox: [...s.outbox, op] }))
+    })()
+  },
+
+  // Retry every queued publish; keep the ones that still fail.
+  flushOutbox: async () => {
+    const { outbox } = get()
+    if (outbox.length === 0) return
+    const remaining: OutboxOp[] = []
+    for (const op of outbox) {
+      const ok = await runOp(op)
+      if (!ok) remaining.push(op)
+    }
+    set({ outbox: remaining })
+  },
+
   loadBoard: async () => {
     if (!hasSupabase) return
+    void get().flushOutbox()
     const uid = currentUserId()
     const [remote, checkins, myRepairs] = await Promise.all([
       fetchOpenNeeds(),
@@ -653,6 +708,7 @@ export const useStore = create<LandfallState>()(
         shelters: s.shelters,
         pledges: s.pledges,
         pendingGroundwork: s.pendingGroundwork,
+        outbox: s.outbox,
       }),
       // Reconcile persisted state with the current build. The Portmore
       // drop-off hub (need + shelter) must ALWAYS be present — an earlier

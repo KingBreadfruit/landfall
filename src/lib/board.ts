@@ -80,16 +80,22 @@ export async function fetchOpenNeeds(): Promise<Need[]> {
   }
 }
 
+// These publish functions return true on success, false on failure (e.g.
+// offline). The caller queues failures in an outbox and retries on reconnect.
+
 /** Publish a need to the shared board (insert or update by id). */
 export async function upsertRemoteNeed(
   need: Need,
   createdBy: string | null,
-): Promise<void> {
-  if (!hasSupabase) return
+): Promise<boolean> {
+  if (!hasSupabase) return false
   try {
-    await supabase.from('board_needs').upsert(needToRow(need, createdBy))
+    const { error } = await supabase
+      .from('board_needs')
+      .upsert(needToRow(need, createdBy))
+    return !error
   } catch {
-    /* best-effort — local board still has it */
+    return false
   }
 }
 
@@ -97,12 +103,16 @@ export async function upsertRemoteNeed(
 export async function markRemoteNeed(
   id: string,
   status: Need['status'],
-): Promise<void> {
-  if (!hasSupabase) return
+): Promise<boolean> {
+  if (!hasSupabase) return false
   try {
-    await supabase.from('board_needs').update({ status }).eq('id', id)
+    const { error } = await supabase
+      .from('board_needs')
+      .update({ status })
+      .eq('id', id)
+    return !error
   } catch {
-    /* best-effort */
+    return false
   }
 }
 
@@ -111,15 +121,16 @@ export async function markRemoteNeed(
 export async function claimRepair(
   id: string,
   claimedBy: string | null,
-): Promise<void> {
-  if (!hasSupabase) return
+): Promise<boolean> {
+  if (!hasSupabase) return false
   try {
-    await supabase
+    const { error } = await supabase
       .from('board_needs')
       .update({ status: 'matched', claimed_by: claimedBy })
       .eq('id', id)
+    return !error
   } catch {
-    /* best-effort */
+    return false
   }
 }
 
@@ -143,12 +154,13 @@ export async function fetchMyPendingRepairs(userId: string): Promise<Need[]> {
 
 /** Resident confirms a repair is done → awards the claimer's points
  * server-side (via the confirm_repair function). */
-export async function confirmRepairRemote(id: string): Promise<void> {
-  if (!hasSupabase) return
+export async function confirmRepairRemote(id: string): Promise<boolean> {
+  if (!hasSupabase) return false
   try {
-    await supabase.rpc('confirm_repair', { need_id: id })
+    const { error } = await supabase.rpc('confirm_repair', { need_id: id })
+    return !error
   } catch {
-    /* best-effort */
+    return false
   }
 }
 
@@ -202,18 +214,19 @@ export async function fetchCheckins(): Promise<CheckIn[]> {
 export async function insertCheckin(
   ci: CheckIn,
   createdBy: string | null,
-): Promise<void> {
-  if (!hasSupabase) return
+): Promise<boolean> {
+  if (!hasSupabase) return false
   try {
-    await supabase.from('board_checkins').upsert({
+    const { error } = await supabase.from('board_checkins').upsert({
       id: ci.id,
       shelter_id: ci.shelterId,
       name: ci.name,
       eta: ci.eta,
       ...(createdBy ? { created_by: createdBy } : {}),
     })
+    return !error
   } catch {
-    /* best-effort */
+    return false
   }
 }
 

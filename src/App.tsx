@@ -32,6 +32,7 @@ export default function App() {
   const screen = useStore((s) => s.screen)
   const selectedShelterId = useStore((s) => s.selectedShelterId)
   const loadBoard = useStore((s) => s.loadBoard)
+  const flushOutbox = useStore((s) => s.flushOutbox)
 
   useEffect(() => {
     initAuth()
@@ -42,6 +43,14 @@ export default function App() {
   useEffect(() => {
     if (ready && (session || guestMode)) void loadBoard()
   }, [ready, session, guestMode, loadBoard])
+
+  // When the network returns, flush anything queued while offline so a
+  // request made with no signal reaches the shared board on reconnect.
+  useEffect(() => {
+    const onOnline = () => void flushOutbox()
+    window.addEventListener('online', onOnline)
+    return () => window.removeEventListener('online', onOnline)
+  }, [flushOutbox])
 
   if (!ready) {
     return (
